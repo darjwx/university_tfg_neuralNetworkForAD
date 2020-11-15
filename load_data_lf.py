@@ -1,3 +1,5 @@
+#Samples frame rate: 2Hz
+
 import numpy as np
 import cv2 as cv
 
