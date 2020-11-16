@@ -121,6 +121,7 @@ for i in range(scenes):
 
 #Converts the input in an array
 cam_front_array = np.asarray(cam_front_array)
+cam_front_tokens = np.asarray(cam_front_tokens)
 
 #CAM_FRONT_LEFT
 sensor = 'CAM_FRONT_LEFT'
@@ -146,6 +147,7 @@ for i in range(scenes):
 
 #Converts the input in an array
 cam_front_left_array = np.asarray(cam_front_left_array)
+cam_front_left_tokens = np.asarray(cam_front_left_tokens)
 
 #CAM_FRONT_RIGHT
 sensor = 'CAM_FRONT_RIGHT'
@@ -171,6 +173,7 @@ for i in range(scenes):
 
 #Converts the input in an array
 cam_front_right_array = np.asarray(cam_front_right_array)
+cam_front_right_tokens = np.asarray(cam_front_right_tokens)
 
 #CAM_BACK
 sensor = 'CAM_BACK'
@@ -196,6 +199,7 @@ for i in range(scenes):
 
 #Converts the input in an array
 cam_back_array = np.asarray(cam_back_array)
+cam_back_tokens = np.asarray(cam_back_tokens)
 
 #CAM_BACK_LEFT
 sensor = 'CAM_BACK_LEFT'
@@ -221,6 +225,7 @@ for i in range(scenes):
 
 #Converts the input in an array
 cam_back_left_array = np.asarray(cam_back_left_array)
+cam_back_left_tokens = np.asarray(cam_back_left_tokens)
 
 #CAM_BACK_RIGHT
 sensor = 'CAM_BACK_RIGHT'
@@ -246,6 +251,7 @@ for i in range(scenes):
 
 #Converts the input in an array
 cam_back_right_array = np.asarray(cam_back_right_array)
+cam_back_right_tokens = np.asarray(cam_back_right_tokens)
 
 loop = 1
 while loop == 1:
