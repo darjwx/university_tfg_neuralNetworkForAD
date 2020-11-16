@@ -114,7 +114,7 @@ for i in range(scenes):
         route = HOME_ROUTE + str(cam_front_data['filename'])
         #print(route)
 
-        cam_front_array.append(np.array(cv.imread(route)))
+        cam_front_array.append(route)
         cam_front_tokens.append(token)
 
         cam_front_data = nusc.get('sample_data', cam_front_data['next'])
@@ -142,7 +142,7 @@ for i in range(scenes):
         token = cam_front_left_data['sample_token']
         route = HOME_ROUTE + str(cam_front_left_data['filename'])
 
-        cam_front_left_array.append(np.array(cv.imread(route)))
+        cam_front_left_array.append(route)
         cam_front_left_tokens.append(token)
 
         cam_front_left_data = nusc.get('sample_data', cam_front_left_data['next'])
@@ -168,7 +168,7 @@ for i in range(scenes):
         token = cam_front_right_data['sample_token']
         route = HOME_ROUTE + str(cam_front_right_data['filename'])
 
-        cam_front_right_array.append(np.array(cv.imread(route)))
+        cam_front_right_array.append(route)
         cam_front_right_tokens.append(token)
 
         cam_front_right_data = nusc.get('sample_data', cam_front_right_data['next'])
@@ -194,7 +194,7 @@ for i in range(scenes):
         token = cam_back_data['sample_token']
         route = HOME_ROUTE + str(cam_back_data['filename'])
 
-        cam_back_array.append(np.array(cv.imread(route)))
+        cam_back_array.append(route)
         cam_back_tokens.append(token)
 
         cam_back_data = nusc.get('sample_data', cam_back_data['next'])
@@ -220,7 +220,7 @@ for i in range(scenes):
         token = cam_back_left_data['sample_token']
         route = HOME_ROUTE + str(cam_back_left_data['filename'])
 
-        cam_back_left_array.append(np.array(cv.imread(route)))
+        cam_back_left_array.append(route)
         cam_back_left_tokens.append(token)
 
         cam_back_left_data = nusc.get('sample_data', cam_back_left_data['next'])
@@ -246,7 +246,7 @@ for i in range(scenes):
         token = cam_back_right_data['sample_token']
         route = HOME_ROUTE + str(cam_back_right_data['filename'])
 
-        cam_back_right_array.append(np.array(cv.imread(route)))
+        cam_back_right_array.append(route)
         cam_back_right_tokens.append(token)
 
         cam_back_right_data = nusc.get('sample_data', cam_back_right_data['next'])
@@ -264,7 +264,7 @@ while loop == 1:
     if im_select == 'CAM_FRONT':
         for i in range(np.shape(cam_front_array)[0]):
             #print('Sample: ' + str(i))
-            cv.imshow(cam_front_tokens[i], cam_front_array[i])
+            cv.imshow(cam_front_tokens[i], cv.imread(cam_front_array[i]))
             my_sample = nusc.get('sample', cam_front_tokens[i])
 
             #Not sure how efficient this is
@@ -290,7 +290,7 @@ while loop == 1:
     elif im_select == 'CAM_FRONT_LEFT':
         for i in range(np.shape(cam_front_left_array)[0]):
             #print('Sample: ' + str(i))
-            cv.imshow(cam_front_left_tokens[i], cam_front_left_array[i])
+            cv.imshow(cam_front_left_tokens[i], cv.imread(cam_front_left_array[i]))
             my_sample = nusc.get('sample', cam_front_left_tokens[i])
 
             #Not sure how efficient this is
@@ -315,7 +315,7 @@ while loop == 1:
     elif im_select == 'CAM_FRONT_RIGHT':
         for i in range(np.shape(cam_front_right_array)[0]):
             #print('Sample: ' + str(i))
-            cv.imshow(cam_front_right_tokens[i], cam_front_right_array[i])
+            cv.imshow(cam_front_right_tokens[i], cv.imread(cam_front_right_array[i]))
             my_sample = nusc.get('sample', cam_front_right_tokens[i])
 
             #Not sure how efficient this is
@@ -340,7 +340,7 @@ while loop == 1:
     elif im_select == 'CAM_BACK':
         for i in range(np.shape(cam_back_array)[0]):
             #print('Sample: ' + str(i))
-            cv.imshow(cam_back_tokens[i], cam_back_array[i])
+            cv.imshow(cam_back_tokens[i], cv.imread(cam_back_array[i]))
             my_sample = nusc.get('sample', cam_back_tokens[i])
 
             #Not sure how efficient this is
@@ -365,7 +365,7 @@ while loop == 1:
     elif im_select == 'CAM_BACK_LEFT':
         for i in range(np.shape(cam_back_left_array)[0]):
             #print('Sample: ' + str(i))
-            cv.imshow(cam_back_left_tokens[i], cam_back_left_array[i])
+            cv.imshow(cam_back_left_tokens[i], cv.imread(cam_back_left_array[i]))
             my_sample = nusc.get('sample', cam_back_left_tokens[i])
 
             #Not sure how efficient this is
@@ -390,7 +390,7 @@ while loop == 1:
     elif im_select == 'CAM_BACK_RIGHT':
         for i in range(np.shape(cam_back_right_array)[0]):
             #print('Sample: ' + str(i))
-            cv.imshow(cam_back_right_tokens[i], cam_back_right_array[i])
+            cv.imshow(cam_back_right_tokens[i], cv.imread(cam_back_right_array[i]))
             my_sample = nusc.get('sample', cam_back_right_tokens[i])
 
             #Not sure how efficient this is
