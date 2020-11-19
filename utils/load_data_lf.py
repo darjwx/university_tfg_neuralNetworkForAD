@@ -3,7 +3,7 @@
 import numpy as np
 import cv2 as cv
 
-HOME_ROUTE = '/home/darjwx/data/sets/nuscenes/'
+HOME_ROUTE = '/media/darjwx/ssd_data/data/sets/nuscenes/'
 #nusc_can.can_blacklist has the scenes without can bus data. But there are more scenes that dont exist
 #419 does not have vehicle_monitor info
 #Missing data for 133 scenes out of 1110 -> aprox 12%
@@ -25,7 +25,7 @@ SCENE_BLACKLIST = np.array([ 37, 40, 136, 137, 141, 153, 156, 161, 162, 163,
 #NuScenes imports
 from nuscenes.nuscenes import NuScenes
 from nuscenes.can_bus.can_bus_api import NuScenesCanBus
-nusc = NuScenes(version='v1.0-mini', dataroot=HOME_ROUTE, verbose=True)
+nusc = NuScenes(version='v1.0-trainval', dataroot=HOME_ROUTE, verbose=True)
 nusc_can = NuScenesCanBus(dataroot=HOME_ROUTE)
 
 #Functions
@@ -110,7 +110,7 @@ for i in range(scenes):
     print('Scene: ' + str(i + 1))
     while not my_sample['next'] == "":
         cam_front_data = nusc.get('sample_data', my_sample['data'][sensor])
-        token = cam_front_data['sample_token']
+        token = cam_front_data['timestamp']
         route = HOME_ROUTE + str(cam_front_data['filename'])
 
         cam_front_array.append(route)
@@ -136,7 +136,7 @@ for i in range(scenes):
     print('Scene: ' + str(i + 1))
     while not my_sample['next'] == "":
         cam_front_left_data = nusc.get('sample_data', my_sample['data'][sensor])
-        token = cam_front_left_data['sample_token']
+        token = cam_front_left_data['timestamp']
         route = HOME_ROUTE + str(cam_front_left_data['filename'])
 
         cam_front_left_array.append(route)
@@ -162,7 +162,7 @@ for i in range(scenes):
     print('Scene: ' + str(i + 1))
     while not my_sample['next'] == "":
         cam_front_right_data = nusc.get('sample_data', my_sample['data'][sensor])
-        token = cam_front_right_data['sample_token']
+        token = cam_front_right_data['timestamp']
         route = HOME_ROUTE + str(cam_front_right_data['filename'])
 
         cam_front_right_array.append(route)
@@ -188,7 +188,7 @@ for i in range(scenes):
     print('Scene: ' + str(i + 1))
     while not my_sample['next'] == "":
         cam_back_data = nusc.get('sample_data', my_sample['data'][sensor])
-        token = cam_back_data['sample_token']
+        token = cam_back_data['timestamp']
         route = HOME_ROUTE + str(cam_back_data['filename'])
 
         cam_back_array.append(route)
@@ -214,7 +214,7 @@ for i in range(scenes):
     print('Scene: ' + str(i + 1))
     while not my_sample['next'] == "":
         cam_back_left_data = nusc.get('sample_data', my_sample['data'][sensor])
-        token = cam_back_left_data['sample_token']
+        token = cam_back_left_data['timestamp']
         route = HOME_ROUTE + str(cam_back_left_data['filename'])
 
         cam_back_left_array.append(route)
@@ -240,7 +240,7 @@ for i in range(scenes):
     print('Scene: ' + str(i + 1))
     while not my_sample['next'] == "":
         cam_back_right_data = nusc.get('sample_data', my_sample['data'][sensor])
-        token = cam_back_right_data['sample_token']
+        token = cam_back_right_data['timestamp']
         route = HOME_ROUTE + str(cam_back_right_data['filename'])
 
         cam_back_right_array.append(route)
@@ -259,155 +259,125 @@ while loop == 1:
     im_select = input("Which camara (ex: CAM_FRONT): ")
 
     if im_select == 'CAM_FRONT':
-        for i in range(np.shape(cam_front_array)[0]):
-            #print('Sample: ' + str(i))
-            cv.imshow(cam_front_tokens[i], cv.imread(cam_front_array[i]))
-            my_sample = nusc.get('sample', cam_front_tokens[i])
+        for i in range(np.shape(vehicle_speed)[0]):
 
             #Not sure how efficient this is
-            timestamp_sample = my_sample['timestamp']
+            id = get_closest(cam_front_tokens, vehicle_speed[i,0])
+            print('Vehicle speed ' + str(vehicle_speed[i,1]))
+            print('Vehicle steering ' + str(vehicle_steering[i,1]))
 
-            id = get_closest(vehicle_speed[:, 0], timestamp_sample)
-            print('Vehicle speed ' + str(vehicle_speed[id,1]))
-
-            id = get_closest(vehicle_steering[:, 0], timestamp_sample)
-            print('Vehicle steering ' + str(vehicle_steering[id,1]))
+            cv.imshow(str(cam_front_tokens[id]), cv.imread(cam_front_array[id]))
 
 
             key = cv.waitKey(0)
 
             #ESCAPE key
             if key == 27:
-                cv.destroyWindow(cam_front_tokens[i])
+                cv.destroyWindow(str(cam_front_tokens[id]))
                 break
             #ENTER key
             elif key == 13:
-                cv.destroyWindow(cam_front_tokens[i])
+                cv.destroyWindow(str(cam_front_tokens[id]))
                 continue
     elif im_select == 'CAM_FRONT_LEFT':
-        for i in range(np.shape(cam_front_left_array)[0]):
-            #print('Sample: ' + str(i))
-            cv.imshow(cam_front_left_tokens[i], cv.imread(cam_front_left_array[i]))
-            my_sample = nusc.get('sample', cam_front_left_tokens[i])
+        for i in range(np.shape(vehicle_speed)[0]):
 
             #Not sure how efficient this is
-            timestamp_sample = my_sample['timestamp']
+            id = get_closest(cam_front_left_tokens, vehicle_speed[i,0])
+            print('Vehicle speed ' + str(vehicle_speed[i,1]))
+            print('Vehicle steering ' + str(vehicle_steering[i,1]))
 
-            id = get_closest(vehicle_speed[:, 0], timestamp_sample)
-            print('Vehicle speed ' + str(vehicle_speed[id,1]))
-
-            id = get_closest(vehicle_steering[:, 0], timestamp_sample)
-            print('Vehicle steering ' + str(vehicle_steering[id,1]))
+            cv.imshow(str(cam_front_left_tokens[id]), cv.imread(cam_front_left_array[id]))
 
             key = cv.waitKey(0)
 
             #ESCAPE key
             if key == 27:
-                cv.destroyWindow(cam_front_tokens[i])
+                cv.destroyWindow(str(cam_front_left_tokens[id]))
                 break
             #ENTER key
             elif key == 13:
-                cv.destroyWindow(cam_front_tokens[i])
+                cv.destroyWindow(str(cam_front_left_tokens[id]))
                 continue
     elif im_select == 'CAM_FRONT_RIGHT':
-        for i in range(np.shape(cam_front_right_array)[0]):
-            #print('Sample: ' + str(i))
-            cv.imshow(cam_front_right_tokens[i], cv.imread(cam_front_right_array[i]))
-            my_sample = nusc.get('sample', cam_front_right_tokens[i])
+        for i in range(np.shape(vehicle_speed)[0]):
 
             #Not sure how efficient this is
-            timestamp_sample = my_sample['timestamp']
+            id = get_closest(cam_front_right_tokens, vehicle_speed[i,0])
+            print('Vehicle speed ' + str(vehicle_speed[i,1]))
+            print('Vehicle steering ' + str(vehicle_steering[i,1]))
 
-            id = get_closest(vehicle_speed[:, 0], timestamp_sample)
-            print('Vehicle speed ' + str(vehicle_speed[id,1]))
-
-            id = get_closest(vehicle_steering[:, 0], timestamp_sample)
-            print('Vehicle steering ' + str(vehicle_steering[id,1]))
+            cv.imshow(str(cam_front_right_tokens[id]), cv.imread(cam_front_right_array[id]))
 
             key = cv.waitKey(0)
 
             #ESCAPE key
             if key == 27:
-                cv.destroyWindow(cam_front_tokens[i])
+                cv.destroyWindow(str(cam_front_right_tokens[id]))
                 break
             #ENTER key
             elif key == 13:
-                cv.destroyWindow(cam_front_tokens[i])
+                cv.destroyWindow(str(cam_front_right_tokens[id]))
                 continue
     elif im_select == 'CAM_BACK':
-        for i in range(np.shape(cam_back_array)[0]):
-            #print('Sample: ' + str(i))
-            cv.imshow(cam_back_tokens[i], cv.imread(cam_back_array[i]))
-            my_sample = nusc.get('sample', cam_back_tokens[i])
+        for i in range(np.shape(vehicle_speed)[0]):
 
             #Not sure how efficient this is
-            timestamp_sample = my_sample['timestamp']
+            id = get_closest(cam_back_tokens, vehicle_speed[i,0])
+            print('Vehicle speed ' + str(vehicle_speed[i,1]))
+            print('Vehicle steering ' + str(vehicle_steering[i,1]))
 
-            id = get_closest(vehicle_speed[:, 0], timestamp_sample)
-            print('Vehicle speed ' + str(vehicle_speed[id,1]))
-
-            id = get_closest(vehicle_steering[:, 0], timestamp_sample)
-            print('Vehicle steering ' + str(vehicle_steering[id,1]))
+            cv.imshow(str(cam_back_tokens[id]), cv.imread(cam_back_array[id]))
 
             key = cv.waitKey(0)
 
             #ESCAPE key
             if key == 27:
-                cv.destroyWindow(cam_front_tokens[i])
+                cv.destroyWindow(str(cam_back_tokens[id]))
                 break
             #ENTER key
             elif key == 13:
-                cv.destroyWindow(cam_front_tokens[i])
+                cv.destroyWindow(str(cam_back_tokens[id]))
                 continue
     elif im_select == 'CAM_BACK_LEFT':
-        for i in range(np.shape(cam_back_left_array)[0]):
-            #print('Sample: ' + str(i))
-            cv.imshow(cam_back_left_tokens[i], cv.imread(cam_back_left_array[i]))
-            my_sample = nusc.get('sample', cam_back_left_tokens[i])
+        for i in range(np.shape(vehicle_speed)[0]):
 
             #Not sure how efficient this is
-            timestamp_sample = my_sample['timestamp']
+            id = get_closest(cam_back_left_tokens, vehicle_speed[i,0])
+            print('Vehicle speed ' + str(vehicle_speed[i,1]))
+            print('Vehicle steering ' + str(vehicle_steering[i,1]))
 
-            id = get_closest(vehicle_speed[:, 0], timestamp_sample)
-            print('Vehicle speed ' + str(vehicle_speed[id,1]))
-
-            id = get_closest(vehicle_steering[:, 0], timestamp_sample)
-            print('Vehicle steering ' + str(vehicle_steering[id,1]))
+            cv.imshow(str(cam_back_left_tokens[id]), cv.imread(cam_back_left_array[id]))
 
             key = cv.waitKey(0)
 
             #ESCAPE key
             if key == 27:
-                cv.destroyWindow(cam_front_tokens[i])
+                cv.destroyWindow(str(cam_back_left_tokens[id]))
                 break
             #ENTER key
             elif key == 13:
-                cv.destroyWindow(cam_front_tokens[i])
+                cv.destroyWindow(str(cam_back_left_tokens[id]))
                 continue
     elif im_select == 'CAM_BACK_RIGHT':
-        for i in range(np.shape(cam_back_right_array)[0]):
-            #print('Sample: ' + str(i))
-            cv.imshow(cam_back_right_tokens[i], cv.imread(cam_back_right_array[i]))
-            my_sample = nusc.get('sample', cam_back_right_tokens[i])
+        for i in range(np.shape(vehicle_speed)[0]):
 
             #Not sure how efficient this is
-            timestamp_sample = my_sample['timestamp']
+            id = get_closest(cam_back_right_tokens, vehicle_speed[i,0])
+            print('Vehicle speed ' + str(vehicle_speed[i,1]))
+            print('Vehicle steering ' + str(vehicle_steering[i,1]))
 
-            id = get_closest(vehicle_speed[:, 0], timestamp_sample)
-            print('Vehicle speed ' + str(vehicle_speed[id,1]))
-
-            id = get_closest(vehicle_steering[:, 0], timestamp_sample)
-            print('Vehicle steering ' + str(vehicle_steering[id,1]))
+            cv.imshow(str(cam_back_right_tokens[id]), cv.imread(cam_back_right_array[id]))
 
             key = cv.waitKey(0)
 
             #ESCAPE key
             if key == 27:
-                cv.destroyWindow(cam_front_tokens[i])
+                cv.destroyWindow(str(cam_back_right_tokens[id]))
                 break
             #ENTER key
             elif key == 13:
-                cv.destroyWindow(cam_front_tokens[i])
+                cv.destroyWindow(str(cam_back_right_tokens[id]))
                 continue
 
     cont = input("Continue (yes/no): ")
