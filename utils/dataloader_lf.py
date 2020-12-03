@@ -288,13 +288,16 @@ class DataLoaderLF:
         self.closest_cam_back_right_tokens = np.asarray(self.closest_cam_back_right_tokens)
 
 
-    def show_data(self, sensor = 'CAM_FRONT'):
+    def show_data(self, sensor = 'CAM_FRONT', labels = False, labels_array = None):
 
         if sensor == 'CAM_FRONT':
             for i in range(np.shape(self.vehicle_speed)[0]):
 
                 print('Vehicle speed ' + str(self.vehicle_speed[i,1]))
                 print('Vehicle steering ' + str(self.vehicle_steering[i,1]))
+
+                if labels == True:
+                    print('Direccion: ' + labels_array[i,0] + ' Acelerador: ' + labels_array[i,1])
 
                 cv.imshow(str(self.closest_cam_front_tokens[i]), cv.imread(self.closest_cam_front_array[i]))
 
@@ -314,6 +317,9 @@ class DataLoaderLF:
                 print('Vehicle speed ' + str(self.vehicle_speed[i,1]))
                 print('Vehicle steering ' + str(self.vehicle_steering[i,1]))
 
+                if labels == True:
+                    print('Direccion: ' + labels_array[i,0] + ' Acelerador: ' + labels_array[i,1])
+
                 cv.imshow(str(self.closest_cam_front_left_tokens[i]), cv.imread(self.closest_cam_front_left_array[i]))
 
                 key = cv.waitKey(0)
@@ -331,6 +337,9 @@ class DataLoaderLF:
 
                 print('Vehicle speed ' + str(self.vehicle_speed[i,1]))
                 print('Vehicle steering ' + str(self.vehicle_steering[i,1]))
+
+                if labels == True:
+                    print('Direccion: ' + labels_array[i,0] + ' Acelerador: ' + labels_array[i,1])
 
                 cv.imshow(str(self.closest_cam_front_right_tokens[i]), cv.imread(self.closest_cam_front_right_array[i]))
 
@@ -350,6 +359,9 @@ class DataLoaderLF:
                 print('Vehicle speed ' + str(self.vehicle_speed[i,1]))
                 print('Vehicle steering ' + str(self.vehicle_steering[i,1]))
 
+                if labels == True:
+                    print('Direccion: ' + labels_array[i,0] + ' Acelerador: ' + labels_array[i,1])
+
                 cv.imshow(str(self.closest_cam_back_tokens[i]), cv.imread(self.closest_cam_back_array[i]))
 
                 key = cv.waitKey(0)
@@ -367,6 +379,9 @@ class DataLoaderLF:
 
                 print('Vehicle speed ' + str(self.vehicle_speed[i,1]))
                 print('Vehicle steering ' + str(self.vehicle_steering[i,1]))
+
+                if labels == True:
+                    print('Direccion: ' + labels_array[i,0] + ' Acelerador: ' + labels_array[i,1])
 
                 cv.imshow(str(self.closest_cam_back_left_tokens[i]), cv.imread(self.closest_cam_back_left_array[i]))
 
@@ -386,6 +401,9 @@ class DataLoaderLF:
                 print('Vehicle speed ' + str(self.vehicle_speed[i,1]))
                 print('Vehicle steering ' + str(self.vehicle_steering[i,1]))
 
+                if labels == True:
+                    print('Direccion: ' + labels_array[i,0] + ' Acelerador: ' + labels_array[i,1])
+
                 cv.imshow(str(self.closest_cam_back_right_tokens[i]), cv.imread(self.closest_cam_back_right_array[i]))
 
                 key = cv.waitKey(0)
@@ -398,6 +416,55 @@ class DataLoaderLF:
                 elif key == 13:
                     cv.destroyWindow(str(self.closest_cam_back_right_tokens[i]))
                     continue
+
+
+    #Build labels
+    #[i,0] straight, left, right.
+    #[i,1] stop, accel, stoping.
+    #We consider actual and previous data.
+    def get_labels(self):
+
+        labels_array = np.empty(np.shape(self.vehicle_speed), dtype = object)
+        for i in range(np.shape(self.vehicle_speed)[0]):
+            #First position does not have previous data
+            if i == 0:
+                diff_speed = self.vehicle_speed[i,1]
+                diff_steering = self.vehicle_steering[i,1]
+
+                if self.vehicle_steering[i,1] > 0:
+                    #Left
+                    steering = 1
+                else:
+                    #Right
+                    steering = 0
+            else:
+                diff_speed = self.vehicle_speed[i,1] - self.vehicle_speed[i-1,1]
+                diff_steering = self.vehicle_steering[i,1] - self.vehicle_steering[i-1,1]
+
+                if self.vehicle_steering[i,1] > self.vehicle_steering[i-1,1]:
+                    #Left
+                    steering = 1
+                else:
+                    #Right
+                    steering = 0
+
+            if self.vehicle_speed[i,1] == 0:
+                labels_array[i,1] = 'stop'
+            elif diff_speed > 0:
+                labels_array[i,1] = 'accel'
+            else:
+                labels_array[i,1] = 'stoping'
+
+            if abs(diff_steering) > 0.6 and steering == 1:
+                labels_array[i,0] = 'left'
+            elif abs(diff_steering) > 0.6 and steering == 0:
+                labels_array[i,0] = 'right'
+            else:
+                labels_array[i,0] = 'straight'
+
+        return labels_array
+
+
 
     #Getters
 
