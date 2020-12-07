@@ -8,6 +8,9 @@ from nuscenes.nuscenes import NuScenes
 from nuscenes.can_bus.can_bus_api import NuScenesCanBus
 from nuscenes.utils.splits import create_splits_scenes
 
+#Progress bar
+from tqdm import tqdm
+
 class DataLoaderHF:
 
     def __init__(self, HOME_ROUTE = '/data/sets/nuscenes/', canbus_scenes = 1111, sensor_scenes = 850):
@@ -152,7 +155,7 @@ class DataLoaderHF:
 
         #Converts the input in an array
         cam_front_train = np.asarray(cam_front_train)
-        cam_front_tokens = np.asarray(cam_front_tokens_train)
+        cam_front_tokens_train = np.asarray(cam_front_tokens_train)
         cam_front_val = np.asarray(cam_front_val)
         cam_front_tokens_val = np.asarray(cam_front_tokens_val)
 
@@ -199,6 +202,7 @@ class DataLoaderHF:
         cam_front_left_tokens_train = np.asarray(cam_front_left_tokens_train)
         cam_front_left_val = np.asarray(cam_front_left_val)
         cam_front_left_tokens_val = np.asarray(cam_front_left_tokens_val)
+
 
         #CAM_FRONT_RIGHT
         sensor = 'CAM_FRONT_RIGHT'
@@ -417,162 +421,129 @@ class DataLoaderHF:
         }
 
         #Build the closest arrays
-        closest_cam_front_train = []
-        closest_cam_front_tokens_train = []
+        aux_canbus_train = self.can_bus['train']['speed']
+        aux_canbus_val = self.can_bus['val']['speed']
 
-        closest_cam_front_val = []
-        closest_cam_front_tokens_val = []
+        closest_cam_front_train = np.empty(np.shape(aux_canbus_train)[0], dtype=np.dtype('<U122'))
+        closest_cam_front_tokens_train = np.empty(np.shape(aux_canbus_train)[0], dtype=np.int64)
 
-        closest_cam_front_left_train = []
-        closest_cam_front_left_tokens_train = []
+        closest_cam_front_val = np.empty(np.shape(aux_canbus_val)[0], dtype=np.dtype('<U122'))
+        closest_cam_front_tokens_val = np.empty(np.shape(aux_canbus_val)[0], dtype=np.int64)
 
-        closest_cam_front_left_val = []
-        closest_cam_front_left_tokens_val = []
+        closest_cam_front_left_train = np.empty(np.shape(aux_canbus_train)[0], dtype=np.dtype('<U122'))
+        closest_cam_front_left_tokens_train = np.empty(np.shape(aux_canbus_train), dtype=np.int64)
 
-        closest_cam_front_right_train = []
-        closest_cam_front_right_tokens_train = []
+        closest_cam_front_left_val = np.empty(np.shape(aux_canbus_val)[0], dtype=np.dtype('<U122'))
+        closest_cam_front_left_tokens_val = np.empty(np.shape(aux_canbus_val)[0], dtype=np.int64)
 
-        closest_cam_front_right_val = []
-        closest_cam_front_right_tokens_val = []
+        closest_cam_front_right_train = np.empty(np.shape(aux_canbus_train)[0], dtype=np.dtype('<U122'))
+        closest_cam_front_right_tokens_train = np.empty(np.shape(aux_canbus_train)[0], dtype=np.int64)
 
-        closest_cam_back_train = []
-        closest_cam_back_tokens_train = []
+        closest_cam_front_right_val = np.empty(np.shape(aux_canbus_val)[0], dtype=np.dtype('<U122'))
+        closest_cam_front_right_tokens_val = np.empty(np.shape(aux_canbus_val)[0], dtype=np.int64)
 
-        closest_cam_back_val = []
-        closest_cam_back_tokens_val = []
+        closest_cam_back_train = np.empty(np.shape(aux_canbus_train)[0], dtype=np.dtype('<U122'))
+        closest_cam_back_tokens_train = np.empty(np.shape(aux_canbus_train)[0], dtype=np.int64)
 
-        closest_cam_back_left_train = []
-        closest_cam_back_left_tokens_train = []
+        closest_cam_back_val = np.empty(np.shape(aux_canbus_val)[0], dtype=np.dtype('<U122'))
+        closest_cam_back_tokens_val = np.empty(np.shape(aux_canbus_val)[0], dtype=np.int64)
 
-        closest_cam_back_left_val = []
-        closest_cam_back_left_tokens_val = []
+        closest_cam_back_left_train = np.empty(np.shape(aux_canbus_train), dtype=np.dtype('<U122'))
+        closest_cam_back_left_tokens_train = np.empty(np.shape(aux_canbus_train)[0], dtype=np.int64)
 
-        closest_cam_back_right_train = []
-        closest_cam_back_right_tokens_train = []
+        closest_cam_back_left_val = np.empty(np.shape(aux_canbus_val)[0], dtype=np.dtype('<U122'))
+        closest_cam_back_left_tokens_val = np.empty(np.shape(aux_canbus_val)[0], dtype=np.int64)
 
-        closest_cam_back_right_val = []
-        closest_cam_back_right_tokens_val = []
+        closest_cam_back_right_train = np.empty(np.shape(aux_canbus_train)[0], dtype=np.dtype('<U122'))
+        closest_cam_back_right_tokens_train = np.empty(np.shape(aux_canbus_train)[0], dtype=np.int64)
+
+        closest_cam_back_right_val = np.empty(np.shape(aux_canbus_val)[0], dtype=np.dtype('<U122'))
+        closest_cam_back_right_tokens_val = np.empty(np.shape(aux_canbus_val)[0], dtype=np.int64)
 
 
-        aux_canbus = self.can_bus['train']['speed']
-        for i in range(np.shape(aux_canbus)[0]):
+        print('Building train closest arrays')
+        for i in tqdm(range(np.shape(aux_canbus_train)[0])):
 
             #CAM FRONT
             aux_list = self.sensors_train['images']['CAM_FRONT']
             aux_list_tokens = self.sensors_train['tokens']['CAM_FRONT']
-            id = get_closest(aux_list_tokens, aux_canbus[i,0])
-            closest_cam_front_train.append(aux_list[id])
-            closest_cam_front_tokens_train.append(aux_list_tokens[id])
+            id = get_closest(aux_list_tokens, aux_canbus_train[i,0])
+            closest_cam_front_train[i] = aux_list[id]
+            closest_cam_front_tokens_train[i] = aux_list_tokens[id]
 
             #CAM FRONT LEFT
             aux_list = self.sensors_train['images']['CAM_FRONT_LEFT']
             aux_list_tokens = self.sensors_train['tokens']['CAM_FRONT_LEFT']
-            id = get_closest(aux_list_tokens, aux_canbus[i,0])
-            closest_cam_front_left_train.append(aux_list[id])
-            closest_cam_front_left_tokens_train.append(aux_list_tokens[id])
+            id = get_closest(aux_list_tokens, aux_canbus_train[i,0])
+            closest_cam_front_left_train[i] = aux_list[id]
+            closest_cam_front_left_tokens_train[i] = aux_list_tokens[id]
 
             #CAM FRONT RIGHT
             aux_list = self.sensors_train['images']['CAM_FRONT_RIGHT']
             aux_list_tokens = self.sensors_train['tokens']['CAM_FRONT_RIGHT']
-            id = get_closest(aux_list_tokens, aux_canbus[i,0])
-            closest_cam_front_right_train.append(aux_list[id])
-            closest_cam_front_right_tokens_train.append(aux_list_tokens[id])
+            id = get_closest(aux_list_tokens, aux_canbus_train[i,0])
+            closest_cam_front_right_train[i] = aux_list[id]
+            closest_cam_front_right_tokens_train[i] = aux_list_tokens[id]
 
             #CAM BACK
             aux_list = self.sensors_train['images']['CAM_BACK']
             aux_list_tokens = self.sensors_train['tokens']['CAM_BACK']
-            id = get_closest(aux_list_tokens, aux_canbus[i,0])
-            closest_cam_back_train.append(aux_list[id])
-            closest_cam_back_tokens_train.append(aux_list_tokens[id])
+            id = get_closest(aux_list_tokens, aux_canbus_train[i,0])
+            closest_cam_back_train[i] = aux_list[id]
+            closest_cam_back_tokens_train[i] = aux_list_tokens[id]
 
             #CAM BACK LEFT
             aux_list = self.sensors_train['images']['CAM_BACK_LEFT']
             aux_list_tokens = self.sensors_train['tokens']['CAM_BACK_LEFT']
-            id = get_closest(aux_list_tokens, aux_canbus[i,0])
-            closest_cam_back_left_train.append(aux_list[id])
-            closest_cam_back_left_tokens_train.append(aux_list_tokens[id])
+            id = get_closest(aux_list_tokens, aux_canbus_train[i,0])
+            closest_cam_back_left_train[i] = aux_list[id]
+            closest_cam_back_left_tokens_train[i] = aux_list_tokens[id]
 
             #CAM BACK RIGHT
             aux_list = self.sensors_train['images']['CAM_BACK_RIGHT']
             aux_list_tokens = self.sensors_train['tokens']['CAM_BACK_RIGHT']
-            id = get_closest(aux_list_tokens, aux_canbus[i,0])
-            closest_cam_back_right_train.append(aux_list[id])
-            closest_cam_back_right_tokens_train.append(aux_list_tokens[id])
+            id = get_closest(aux_list_tokens, aux_canbus_train[i,0])
+            closest_cam_back_right_train[i] = aux_list[id]
+            closest_cam_back_right_tokens_train[i] = aux_list_tokens[id]
 
-        aux_canbus = self.can_bus['val']['speed']
-        for i in range(np.shape(aux_canbus)[0]):
+        print('Building validation closest arrays')
+        for i in tqdm(range(np.shape(aux_canbus_val)[0])):
 
             aux_list = self.sensors_val['images']['CAM_FRONT']
             aux_list_tokens = self.sensors_val['tokens']['CAM_FRONT']
-            id = get_closest(aux_list_tokens, aux_canbus[i,0])
-            closest_cam_front_val.append(aux_list_tokens[id])
-            closest_cam_front_tokens_val.append(aux_list[id])
+            id = get_closest(aux_list_tokens, aux_canbus_val[i,0])
+            closest_cam_front_val[i] = aux_list[id]
+            closest_cam_front_tokens_val[i] = aux_list_tokens[id]
 
             aux_list = self.sensors_val['images']['CAM_FRONT_LEFT']
             aux_list_tokens = self.sensors_val['tokens']['CAM_FRONT_LEFT']
-            id = get_closest(aux_list_tokens, aux_canbus[i,0])
-            closest_cam_front_left_val.append(aux_list[id])
-            closest_cam_front_left_tokens_val.append(aux_list_tokens[id])
+            id = get_closest(aux_list_tokens, aux_canbus_val[i,0])
+            closest_cam_front_left_val[i] = aux_list[id]
+            closest_cam_front_left_tokens_val[i] = aux_list_tokens[id]
 
             aux_list = self.sensors_val['images']['CAM_FRONT_RIGHT']
             aux_list_tokens = self.sensors_val['tokens']['CAM_FRONT_RIGHT']
-            id = get_closest(aux_list_tokens, aux_canbus[i,0])
-            closest_cam_front_right_val.append(aux_list[id])
-            closest_cam_front_right_tokens_val.append(aux_list_tokens[id])
+            id = get_closest(aux_list_tokens, aux_canbus_val[i,0])
+            closest_cam_front_right_val[i] = aux_list[id]
+            closest_cam_front_right_tokens_val[i] = aux_list_tokens[id]
 
             aux_list = self.sensors_val['images']['CAM_BACK']
             aux_list_tokens = self.sensors_val['tokens']['CAM_BACK']
-            id = get_closest(aux_list_tokens, aux_canbus[i,0])
-            closest_cam_back_val.append(aux_list[id])
-            closest_cam_back_tokens_val.append(aux_list_tokens[id])
+            id = get_closest(aux_list_tokens, aux_canbus_val[i,0])
+            closest_cam_back_val[i] = aux_list[id]
+            closest_cam_back_tokens_val[i] = aux_list_tokens[id]
 
             aux_list = self.sensors_val['images']['CAM_BACK_LEFT']
             aux_list_tokens = self.sensors_val['tokens']['CAM_BACK_LEFT']
-            id = get_closest(aux_list_tokens, aux_canbus[i,0])
-            closest_cam_back_left_val.append(aux_list[id])
-            closest_cam_back_left_tokens_val.append(aux_list_tokens[id])
+            id = get_closest(aux_list_tokens, aux_canbus_val[i,0])
+            closest_cam_back_left_val[i] = aux_list[id]
+            closest_cam_back_left_tokens_val[i] = aux_list_tokens[id]
 
             aux_list = self.sensors_val['images']['CAM_BACK_RIGHT']
             aux_list_tokens = self.sensors_val['tokens']['CAM_BACK_RIGHT']
-            id = get_closest(aux_list_tokens, aux_canbus[i,0])
-            closest_cam_back_right_val.append(aux_list[id])
-            closest_cam_back_right_tokens_val.append(aux_list_tokens[id])
-
-        closest_cam_front_train = np.asarray(closest_cam_front_train)
-        closest_cam_front_tokens_train = np.asarray(closest_cam_front_tokens_train)
-
-        closest_cam_front_val = np.asarray(closest_cam_front_val)
-        closest_cam_front_tokens_val = np.asarray(closest_cam_front_tokens_val)
-
-        closest_cam_front_left_train = np.asarray(closest_cam_front_left_train)
-        closest_cam_front_left_tokens_train = np.asarray(closest_cam_front_left_tokens_train)
-
-        closest_cam_front_left_val = np.asarray(closest_cam_front_left_val)
-        closest_cam_front_left_tokens_val = np.asarray(closest_cam_front_left_tokens_val)
-
-        closest_cam_front_right_train = np.asarray(closest_cam_front_right_train)
-        closest_cam_front_right_tokens_train = np.asarray(closest_cam_front_right_tokens_train)
-
-        closest_cam_front_right_val = np.asarray(closest_cam_front_right_val)
-        closest_cam_front_right_tokens_val = np.asarray(closest_cam_front_right_tokens_val)
-
-        closest_cam_back_train = np.asarray(closest_cam_back_train)
-        closest_cam_back_tokens_train = np.asarray(closest_cam_back_tokens_train)
-
-        closest_cam_back_val = np.asarray(closest_cam_back_val)
-        closest_cam_back_tokens_val = np.asarray(closest_cam_back_tokens_val)
-
-        closest_cam_back_left_train = np.asarray(closest_cam_back_left_train)
-        closest_cam_back_left_tokens_train = np.asarray(closest_cam_back_left_tokens_train)
-
-        closest_cam_back_left_val = np.asarray(closest_cam_back_left_val)
-        closest_cam_back_left_tokens_val = np.asarray(closest_cam_back_left_tokens_val)
-
-        closest_cam_back_right_train = np.asarray(closest_cam_back_right_train)
-        closest_cam_back_right_tokens_train = np.asarray(closest_cam_back_right_tokens_train)
-
-        closest_cam_back_right_val = np.asarray(closest_cam_back_right_val)
-        closest_cam_back_right_tokens_val = np.asarray(closest_cam_back_right_tokens_val)
+            id = get_closest(aux_list_tokens, aux_canbus_val[i,0])
+            closest_cam_back_right_val[i] = aux_list[id]
+            closest_cam_back_right_tokens_val[i] = aux_list_tokens[id]
 
         #Dictionaries
         self.closest_sensors_train = {
