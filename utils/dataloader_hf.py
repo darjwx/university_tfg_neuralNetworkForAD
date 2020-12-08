@@ -616,10 +616,10 @@ class DataLoaderHF:
     #[i,0] straight, left, right.
     #[i,1] stop, accel, stoping.
     #We consider actual and previous data.
-    def get_labels(self):
+    def get_labels(self, type = 'train'):
 
-        aux_canbus_speed = self.can_bus['train']['speed']
-        aux_canbus_steering = self.can_bus['train']['steering']
+        aux_canbus_speed = self.can_bus[type]['speed']
+        aux_canbus_steering = self.can_bus[type]['steering']
         labels_array = np.empty(np.shape(aux_canbus_speed)[0], dtype = object)
         for i in range(np.shape(aux_canbus_speed)[0]):
             #First position does not have previous data
