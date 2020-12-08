@@ -597,7 +597,7 @@ class DataLoaderHF:
             print('Vehicle steering ' + str(aux_canbus_steering[i,1]))
 
             if labels == True:
-                print('Direccion: ' + labels_array[i,0] + ' Acelerador: ' + labels_array[i,1])
+                print('Speed/Direction: ' + labels_array[i])
 
             cv.imshow(str(aux_list_tokens[i]), cv.imread(aux_list[i]))
 
@@ -620,7 +620,7 @@ class DataLoaderHF:
 
         aux_canbus_speed = self.can_bus['train']['speed']
         aux_canbus_steering = self.can_bus['train']['steering']
-        labels_array = np.empty(np.shape(aux_canbus_speed), dtype = object)
+        labels_array = np.empty(np.shape(aux_canbus_speed)[0], dtype = object)
         for i in range(np.shape(aux_canbus_speed)[0]):
             #First position does not have previous data
             if i == 0:
@@ -645,18 +645,20 @@ class DataLoaderHF:
                     steering = 0
 
             if aux_canbus_speed[i,1] == 0:
-                labels_array[i,1] = 'stop'
+                labels_1 = 'stop'
             elif diff_speed > 0:
-                labels_array[i,1] = 'accel'
+                labels_1 = 'accel'
             else:
-                labels_array[i,1] = 'stoping'
+                labels_1 = 'stoping'
 
             if abs(diff_steering) > 0.6 and steering == 1:
-                labels_array[i,0] = 'left'
+                labels_2 = 'left'
             elif abs(diff_steering) > 0.6 and steering == 0:
-                labels_array[i,0] = 'right'
+                labels_2 = 'right'
             else:
-                labels_array[i,0] = 'straight'
+                labels_2 = 'straight'
+
+            labels_array[i] = labels_1 + '-' + labels_2
 
         return labels_array
 
