@@ -393,13 +393,13 @@ class DataLoaderHF(Dataset):
             }
         }
 
-        self.classes = ['stop-straight', 'stop-left', 'stop-right',
-                        'accel-straight', 'accel-left', 'accel-right',
-                        'stoping-straight', 'stoping-left', 'stoping-right']
+        self.classes_speed = ['stop', 'stoping', 'accel']
+
+        self.classes_steering = ['straight', 'left', 'right']
 
         aux_canbus_speed = self.can_bus['speed']
         aux_canbus_steering = self.can_bus['steering']
-        self.labels_array = np.empty(np.shape(aux_canbus_speed)[0], dtype = object)
+        self.labels_array = np.empty(np.shape(aux_canbus_speed), dtype = object)
         for i in range(np.shape(aux_canbus_speed)[0]):
             #First position does not have previous data
             if i == 0:
@@ -437,7 +437,8 @@ class DataLoaderHF(Dataset):
             else:
                 labels_2 = 'straight'
 
-            self.labels_array[i] = labels_1 + '-' + labels_2
+            self.labels_array[i][0] = labels_1
+            self.labels_array[i][1] = labels_2
 
         self.transform = transform
 
@@ -450,14 +451,16 @@ class DataLoaderHF(Dataset):
         path = self.sensors_labelled_data['images']['CAM_FRONT'][idx]
         image = cv.imread(path)
         image = image.astype(np.float32)
-        label = self.labels_array[idx]
+        label_1 = self.labels_array[idx][0]
+        label_2 = self.labels_array[idx][1]
 
-        for i in range(len(self.classes)):
-            if label == self.classes[i]:
-                id = i
-                break
+        for i in range(len(self.classes_speed)):
+            if label_1 == self.classes_speed[i]:
+                id_1 = i
+            if label_2 == self.classes_steering[i]:
+                id_2 = i
 
-        id = np.array(id)
+        id = np.array([id_1, id_2])
         train = {'image': image, 'label': id}
 
         if self.transform:
@@ -478,7 +481,7 @@ class DataLoaderHF(Dataset):
             print('Vehicle steering ' + str(aux_canbus_steering[i,1]))
 
             if labels == True:
-                print('Speed/Direction: ' + self.labels_array[i])
+                print('Speed: ' + self.labels_array[i,0] + ' Steering: ' + self.labels_array[i,1])
 
             cv.imshow(str(aux_list_tokens[i]), cv.imread(aux_list[i]))
 
