@@ -137,7 +137,7 @@ with torch.no_grad():
         all_labels_1 = torch.cat((all_labels_1, labels[:, 0]), dim=0)
         all_labels_2 = torch.cat((all_labels_2, labels[:, 1]), dim=0)
 
-        for i in range(batch_size):
+        for i in range(np.shape(labels)[0]):
             label = labels[i,0]
             class_correct_1[label] += correct_1[i].item()
             class_total_1[label] +=1
