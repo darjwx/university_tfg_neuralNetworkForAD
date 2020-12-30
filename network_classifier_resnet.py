@@ -72,11 +72,13 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25):
                 running_corrects_2 += (predicted_2 == labels[:, 1]).sum().item()
 
             epoch_loss = running_loss / len(dataloaders[phase].dataset)
-            epoch_acc = (running_corrects_1 + running_corrects_2) / (2 * len(dataloaders[phase].dataset))
+            epoch_acc_1 = running_corrects_1 / len(dataloaders[phase].dataset)
+            epoch_acc_2 = running_corrects_2 / len(dataloaders[phase].dataset)
 
-            print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
+            print('{} Loss: {:.4f} Acc: {:.4f}  {:.4f}'.format(phase, epoch_loss, epoch_acc_1, epoch_acc_2))
 
             # deep copy the model
+            epoch_acc = (epoch_acc_1 + epoch_acc_2) / 2
             if phase == 'val' and epoch_acc > best_acc:
                 best_acc = epoch_acc
                 best_model_wts = copy.deepcopy(model.state_dict())
@@ -181,7 +183,7 @@ with torch.no_grad():
         for i in range(np.shape(labels)[0]):
             label = labels[i,0]
             class_correct_1[label] += correct_1[i].item()
-            class_total_1[label] +=1
+            class_total_1[label] += 1
 
             label = labels[i,1]
             class_correct_2[label] += correct_2[i].item()

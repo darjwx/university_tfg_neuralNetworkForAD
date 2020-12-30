@@ -108,6 +108,9 @@ class_total_1 = list(0. for i in range(3))
 class_correct_2 = list(0. for i in range(3))
 class_total_2 = list(0. for i in range(3))
 
+correct_total_1 = 0
+correct_total_2 = 0
+
 all_preds_1 = torch.tensor([])
 all_preds_2 = torch.tensor([])
 all_labels_1 = torch.tensor([])
@@ -131,6 +134,9 @@ with torch.no_grad():
         _, predicted_2 = torch.max(out2.data, 1)
         correct_2 = (predicted_2 == labels[:, 1]).squeeze()
 
+        correct_total_1 += (predicted_1 == labels[:, 0]).sum().item()
+        correct_total_2 += (predicted_2 == labels[:, 1]).sum().item()
+
         all_preds_1 = torch.cat((all_preds_1, predicted_1), dim=0)
         all_preds_2 = torch.cat((all_preds_2, predicted_2), dim=0)
 
@@ -140,12 +146,16 @@ with torch.no_grad():
         for i in range(np.shape(labels)[0]):
             label = labels[i,0]
             class_correct_1[label] += correct_1[i].item()
-            class_total_1[label] +=1
+            class_total_1[label] += 1
 
             label = labels[i,1]
             class_correct_2[label] += correct_2[i].item()
             class_total_2[label] += 1
 
+accuracy_t_1 = correct_total_1 / len(valloader.dataset)
+accuracy_t_2 = correct_total_2 / len(valloader.dataset)
+print('Accuracy 1: %1.3f  Accuracy 2: %1.3f'
+      % (accuracy_t_1, accuracy_t_2))
 
 #Per class statistics
 #Accuracy
