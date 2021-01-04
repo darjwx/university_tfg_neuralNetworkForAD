@@ -1,7 +1,7 @@
 # Utils and dataloader
 from utils.dataloader_hf import DataLoaderHF
 from utils.transforms import Rescale, ToTensor
-from utils.metrics import get_metrics
+from utils.metrics import get_metrics, show_predicted_data
 
 # Pytorch
 import torch
@@ -170,3 +170,6 @@ for i in range(3):
 #Recall, precision, f1_score and confusion_matrix
 get_metrics(all_labels_1.cpu(), all_preds_1.cpu(), 3, classes_speed)
 get_metrics(all_labels_2.cpu(), all_preds_2.cpu(), 3, classes_steering)
+
+#Show examples
+show_predicted_data(valloader, classes_speed, classes_steering, all_preds_1.cpu(), all_preds_2.cpu())
