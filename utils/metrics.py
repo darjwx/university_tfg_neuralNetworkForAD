@@ -1,5 +1,6 @@
 #sklearn
-from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, confusion_matrix
+from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, confusion_matrix, ConfusionMatrixDisplay
+
 
 #Pytorch
 from torchvision.utils import make_grid
@@ -20,9 +21,10 @@ def get_metrics(labels_true, labels_pred, num_classes, classes):
         print('Recall, precision and F1-score of %5s: %1.3f %1.3f %1.3f'
               % (classes[i], recall[i], precision[i], f1[i]))
 
+    disp = ConfusionMatrixDisplay(confusion_matrix = conf_matrix, display_labels = classes)
+    disp.plot()
+    plt.show()
 
-    print('--Confusion matrix--')
-    print(conf_matrix)
 
 def show_predicted_data(dataloader, classes_1, classes_2, labels_pred_1, labels_pred_2):
 
