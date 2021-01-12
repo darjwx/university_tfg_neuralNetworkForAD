@@ -1,7 +1,7 @@
 # Utils
 from utils.dataloader_hf import DataLoaderHF
 from utils.transforms import Rescale, ToTensor
-from utils.metrics import get_metrics
+from utils.metrics import get_metrics, show_predicted_data
 
 # Misc
 import time
