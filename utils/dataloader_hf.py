@@ -88,15 +88,6 @@ class DataLoaderHF(Dataset):
                 vehicle_monitor_aux = nusc_can.get_messages(scene_name, message_name)
                 vehicle_speed = np.append(vehicle_speed, [(m['utime'], m['vehicle_speed']) for m in vehicle_monitor_aux], axis = 0)
 
-        #Load and save steering data from vehicle_monitor
-        scene_name = 'scene-0001'
-        message_name = 'vehicle_monitor'
-        vehicle_monitor_aux = nusc_can.get_messages(scene_name, message_name)
-        vehicle_steering_train = np.array([(m['utime'], m['steering']) for m in vehicle_monitor_aux])
-        scene_name = 'scene-0003'
-        vehicle_monitor_aux = nusc_can.get_messages(scene_name, message_name)
-        vehicle_steering_val = np.array([(m['utime'], m['steering']) for m in vehicle_monitor_aux])
-
         if mode == 'train':
             scene_name = 'scene-0001'
             vehicle_monitor_aux = nusc_can.get_messages(scene_name, message_name)
