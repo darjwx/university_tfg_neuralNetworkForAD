@@ -9,6 +9,10 @@ from torchvision.utils import make_grid
 import numpy as np
 import matplotlib.pyplot as plt
 
+# TensorBoard
+from torch.utils.tensorboard import SummaryWriter
+writer = SummaryWriter('runs/classifier_resnet')
+
 
 def get_metrics(labels_true, labels_pred, num_classes, classes):
 
@@ -57,3 +61,13 @@ def show_predicted_data(dataloader, classes_1, classes_2, labels_pred_1, labels_
         print('------')
 
         imshow(make_grid(images))
+
+def update_scalar_tb(tag, scalar, x):
+    writer.add_scalar(tag, scalar, x)
+
+def pr_curve_tb(num_classes, labels_1, labels_2, preds_1, preds_2):
+    for i in range(num_classes):
+        labels_i_1 = labels_1 == i
+        labels_i_2 = labels_2 == i
+        writer.add_pr_curve('Precision-Recall speed' + str(i), labels_i_1, preds_1[:,i], global_step=0)
+        writer.add_pr_curve('Precision-Recall direction' + str(i), labels_i_2, preds_2[:,i], global_step=0)

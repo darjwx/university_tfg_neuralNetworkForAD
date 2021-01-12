@@ -1,7 +1,7 @@
 # Utils
 from utils.dataloader_hf import DataLoaderHF
 from utils.transforms import Rescale, ToTensor
-from utils.metrics import get_metrics, show_predicted_data
+from utils.metrics import get_metrics, show_predicted_data, pr_curve_tb
 
 # Misc
 import time
@@ -14,6 +14,7 @@ import torchvision
 import torchvision.transforms as transforms
 import torchvision.models as models
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 
 # OpenCV
@@ -160,6 +161,9 @@ all_preds_2 = all_preds_2.to(device)
 all_labels_1 = all_labels_1.to(device)
 all_labels_2 = all_labels_2.to(device)
 
+preds_1 = []
+preds_2 = []
+
 with torch.no_grad():
     for data in valloader:
         images = data['image']
@@ -180,6 +184,11 @@ with torch.no_grad():
         all_labels_1 = torch.cat((all_labels_1, labels[:, 0]), dim=0)
         all_labels_2 = torch.cat((all_labels_2, labels[:, 1]), dim=0)
 
+        class_1_predictions = [F.softmax(output, dim=0) for output in out1]
+        class_2_predictions = [F.softmax(output, dim=0) for output in out2]
+        preds_1.append(class_1_predictions)
+        preds_2.append(class_2_predictions)
+
         for i in range(np.shape(labels)[0]):
             label = labels[i,0]
             class_correct_1[label] += correct_1[i].item()
@@ -189,6 +198,12 @@ with torch.no_grad():
             class_correct_2[label] += correct_2[i].item()
             class_total_2[label] += 1
 
+
+# p-r curve
+preds_1 = torch.cat([torch.stack(batch) for batch in preds_1])
+preds_2 = torch.cat([torch.stack(batch) for batch in preds_2])
+
+pr_curve_tb(3, all_labels_1, all_labels_2, preds_1, preds_2)
 
 #Per class statistics
 #Accuracy

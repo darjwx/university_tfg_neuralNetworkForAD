@@ -1,7 +1,7 @@
 # Utils and dataloader
 from utils.dataloader_hf import DataLoaderHF
 from utils.transforms import Rescale, ToTensor
-from utils.metrics import get_metrics, show_predicted_data
+from utils.metrics import get_metrics, show_predicted_data, update_scalar_tb, pr_curve_tb
 
 # Pytorch
 import torch
@@ -55,7 +55,7 @@ model = Net()
 model = model.to(device)
 
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
 # Custom Dataloader for NuScenes
 HOME_ROUTE = '/media/darjwx/ssd_data/data/sets/nuscenes/'
@@ -90,9 +90,12 @@ for epoch in range(num_epochs):
         optimizer.step()
 
         running_loss += loss.item()
-        if i % 2000 == 1999:    # print every 2000 mini-batches
+
+        if i % 1000 == 999:    # print every 1000 mini-batches
             print('[%d, %5d] loss: %.3f'
-                 % (epoch + 1, i + 1, running_loss / 2000))
+                 % (epoch + 1, i + 1, running_loss / 1000))
+
+            update_scalar_tb('training loss', running_loss / 1000, epoch * len(trainloader) + i)
             running_loss = 0.0
 
 print('Finished training')
@@ -120,6 +123,9 @@ all_preds_2 = all_preds_2.to(device)
 all_labels_1 = all_labels_1.to(device)
 all_labels_2 = all_labels_2.to(device)
 
+preds_1 = []
+preds_2 = []
+
 with torch.no_grad():
     for data in valloader:
         images = data['image']
@@ -142,6 +148,11 @@ with torch.no_grad():
 
         all_labels_1 = torch.cat((all_labels_1, labels[:, 0]), dim=0)
         all_labels_2 = torch.cat((all_labels_2, labels[:, 1]), dim=0)
+
+        class_1_predictions = [F.softmax(output, dim=0) for output in out1]
+        class_2_predictions = [F.softmax(output, dim=0) for output in out2]
+        preds_1.append(class_1_predictions)
+        preds_2.append(class_2_predictions)
 
         for i in range(np.shape(labels)[0]):
             label = labels[i,0]
@@ -166,6 +177,12 @@ for i in range(3):
           % (classes_speed[i], accuracy_speed))
     print('Accuracy of %5s: %1.3f'
           % (classes_steering[i], accuracy_steering))
+
+# p-r curve
+preds_1 = torch.cat([torch.stack(batch) for batch in preds_1])
+preds_2 = torch.cat([torch.stack(batch) for batch in preds_2])
+
+pr_curve_tb(3, all_labels_1, all_labels_2, preds_1, preds_2)
 
 #Recall, precision, f1_score and confusion_matrix
 get_metrics(all_labels_1.cpu(), all_preds_1.cpu(), 3, classes_speed)
