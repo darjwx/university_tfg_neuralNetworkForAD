@@ -1,7 +1,7 @@
 # Utils
 from utils.dataloader_hf import DataLoaderHF
 from utils.transforms import Rescale, ToTensor
-from utils.metrics import get_metrics, show_predicted_data, pr_curve_tb
+from utils.metrics import get_metrics, show_predicted_data, update_scalar_tb, pr_curve_tb
 
 # Misc
 import time
@@ -75,6 +75,10 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25):
             epoch_loss = running_loss / len(dataloaders[phase].dataset)
             epoch_acc_1 = running_corrects_1 / len(dataloaders[phase].dataset)
             epoch_acc_2 = running_corrects_2 / len(dataloaders[phase].dataset)
+
+            # TensorBoard
+            if phase == 'train':
+                update_scalar_tb('Train loss per epoch', epoch_loss, epoch)
 
             print('{} Loss: {:.4f} Acc: {:.4f}  {:.4f}'.format(phase, epoch_loss, epoch_acc_1, epoch_acc_2))
 
