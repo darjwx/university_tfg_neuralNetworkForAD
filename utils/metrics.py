@@ -42,7 +42,7 @@ def get_metrics(labels_true, labels_pred, num_classes, classes):
     disp = ConfusionMatrixDisplay(confusion_matrix = conf_matrix, display_labels = classes)
     disp.plot()
     plt.show()
-1
+
 
 def show_predicted_data(dataloader, classes_1, classes_2, labels_pred_1, labels_pred_2):
     """
