@@ -39,13 +39,13 @@ class Rescale(object):
             #print(np.shape(image))
             res_img = []
             for i in range(np.shape(image)[0]):
-                res_img.append(cv.resize(image[i], (h,w)))
+                res_img.append(cv.resize(image[i], (w,h)))
 
             #print(np.shape(res_img))
             return {'image': res_img, 'label': label}
 
         else:
-            img = cv.resize(image, (h,w))
+            img = cv.resize(image, (w,h))
 
             return {'image': img, 'label': label}
 
