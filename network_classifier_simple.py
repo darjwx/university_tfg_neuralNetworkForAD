@@ -24,10 +24,9 @@ batch_size = 4
 learning_rate = 0.001
 
 # Transforms
-# Original resolution / 4 (1600, 900)
-composed = transforms.Compose([Rescale((400,225)),
+# Original resolution / 4 (900, 1600) (h, w)
+composed = transforms.Compose([Rescale((225,400)),
                               ToTensor()])
-
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
