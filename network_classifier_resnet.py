@@ -1,6 +1,6 @@
 # Utils
 from utils.dataloader_hf import DataLoaderHF
-from utils.transforms import Rescale, ToTensor
+from utils.transforms import Rescale, ToTensor, Normalize
 from utils.metrics import get_metrics, show_predicted_data, update_scalar_tb, pr_curve_tb
 
 # Misc
@@ -124,8 +124,11 @@ learning_rate = 0.001
 
 # Transforms
 # Original resolution / 4 (900, 1600) (h, w)
+mean = (97.7419, 99.9757, 98.8718)
+std = (56.8975, 55.1809, 55.8246)
 composed = transforms.Compose([Rescale((225,400)),
-                              ToTensor()])
+                              ToTensor(),
+                              Normalize(mean, std)])
 
 # Detect if we have a GPU available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

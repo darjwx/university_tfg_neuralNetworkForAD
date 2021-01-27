@@ -31,8 +31,11 @@ num_classes = 3
 
 # Transforms
 # Original resolution / 4 (900, 1600) (h, w)
+mean = (97.7419, 99.9757, 98.8718)
+std = (56.8975, 55.1809, 55.8246)
 composed = transforms.Compose([Rescale((225,400), True),
-                              ToTensor(True)])
+                              ToTensor(True),
+                              Normalize(mean, std, True)])
 
 class CNNtoLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, num_classes):
