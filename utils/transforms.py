@@ -108,7 +108,7 @@ class Normalize(object):
 
         self.mean = mean
         self.std = std
-        self.seq = self
+        self.seq = seq
 
     def __call__(self, sample):
         """
@@ -124,8 +124,11 @@ class Normalize(object):
             aux = torch.tensor([])
             for i in range(image.size(0)):
                 aux = torch.cat((aux, norm(image[i])), dim=0)
-        else:
-            aux = norm(image)
 
-        return {'image': aux,
-                'label': label}
+            return {'image': aux,
+                    'label': label}
+        else:
+            img = norm(image)
+
+            return {'image': img,
+                    'label': label}
