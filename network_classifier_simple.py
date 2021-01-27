@@ -68,8 +68,8 @@ classes_speed = ['stop', 'stoping', 'accel']
 
 classes_steering = ['straight', 'left', 'right']
 
-trainloader = DataLoader(dataset_train, batch_size, shuffle=False, num_workers=4)
-valloader = DataLoader(dataset_val, batch_size, shuffle=False, num_workers=4)
+trainloader = DataLoader(dataset_train, batch_size, shuffle=True, num_workers=4)
+valloader = DataLoader(dataset_val, batch_size, shuffle=True, num_workers=4)
 
 print('Training with %d images' % (len(dataset_train)))
 running_loss = 0.0

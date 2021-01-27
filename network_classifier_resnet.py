@@ -146,8 +146,8 @@ dataset_val = DataLoaderHF(HOME_ROUTE, 'val', 1111, 850, composed)
 classes_speed = ['stop', 'stoping', 'accel']
 classes_steering = ['straight', 'left', 'right']
 
-trainloader = DataLoader(dataset_train, batch_size, shuffle=False, num_workers=4)
-valloader = DataLoader(dataset_val, batch_size, shuffle=False, num_workers=4)
+trainloader = DataLoader(dataset_train, batch_size, shuffle=True, num_workers=4)
+valloader = DataLoader(dataset_val, batch_size, shuffle=True, num_workers=4)
 
 dataloaders = {'train': trainloader, 'val': valloader}
 model = train_model(model, dataloaders, criterion, optimizer, num_epochs)

@@ -85,15 +85,13 @@ optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 HOME_ROUTE = '/media/darjwx/ssd_data/data/sets/nuscenes/'
 dataset_train = DataLoaderSeq(HOME_ROUTE, 'train', 1111, 850, composed)
 dataset_val = DataLoaderSeq(HOME_ROUTE, 'val', 1111, 850, composed)
-seq_length_train = dataset_train.get_seq_length()
-seq_length_val = dataset_val.get_seq_length()
 
 classes_speed = ['stop', 'stoping', 'accel']
 
 classes_steering = ['straight', 'left', 'right']
 
-trainloader = DataLoader(dataset_train, batch_size, shuffle=False)
-valloader = DataLoader(dataset_val, batch_size, shuffle=False)
+trainloader = DataLoader(dataset_train, batch_size, shuffle=True)
+valloader = DataLoader(dataset_val, batch_size, shuffle=True)
 
 print('Training with %d groups of connected images' % (len(dataset_train)))
 running_loss = 0.0
@@ -109,7 +107,7 @@ for epoch in range(num_epochs):
         images = images.to(device)
         labels = labels.to(device)
 
-        sequence_length = seq_length_train[i]
+        sequence_length = images.size(1)
         out1, out2 = model(images)
 
         visualize_model(model, images)
@@ -166,7 +164,7 @@ with torch.no_grad():
         images = images.to(device)
         labels = labels.to(device)
 
-        sequence_length = seq_length_val[v]
+        sequence_length = images.size(1)
         labels = labels.reshape(-1, 2)
 
         out1, out2 = model(images)
