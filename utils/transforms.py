@@ -121,11 +121,10 @@ class Normalize(object):
         norm = transforms.Compose([transforms.Normalize(self.mean, self.std)])
 
         if self.seq:
-            aux = torch.tensor([])
             for i in range(image.size(0)):
-                aux = torch.cat((aux, norm(image[i])), dim=0)
+                image[i] = norm(image[i])
 
-            return {'image': aux,
+            return {'image': image,
                     'label': label}
         else:
             img = norm(image)
