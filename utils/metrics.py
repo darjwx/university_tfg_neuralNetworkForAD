@@ -44,7 +44,7 @@ def get_metrics(labels_true, labels_pred, num_classes, classes):
     plt.show()
 
 
-def show_predicted_data(dataloader, classes_1, classes_2, labels_pred_1, labels_pred_2):
+def show_predicted_data(dataloader, classes_1, classes_2, labels_pred_1, labels_pred_2, mean, std):
     """
     Shows a batch of images with their corresponding prediction and ground truth.
     :param dataloader: Dataloader variable from pytorch with images and labels.
@@ -52,14 +52,21 @@ def show_predicted_data(dataloader, classes_1, classes_2, labels_pred_1, labels_
     :param classes_2: Number of classes 2.
     :param labels_pred_1: Predictions 1.
     :param labels_pred_2: Predictions 2.
+    :param mean: Mean of each channel.
+    :param std: Standard deviation of each channel.
     """
 
     # Adapts the image for plt.imshow
     def imshow(image):
         img = image
-        # Normalize values
-        img = img.numpy()
+        # Unnormalize images
+        for i in range(3):
+            img[i] = img[i] * std[i] + mean[i]
+
+        # We want values between [0, 1]
         img = img / 255
+
+        img = img.numpy()
         # imshow expects and array with the form: H * W * Colour channels
         img = np.transpose(img, (1, 2, 0))
         # BGR -> RGB

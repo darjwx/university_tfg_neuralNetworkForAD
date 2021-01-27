@@ -191,4 +191,4 @@ get_metrics(all_labels_1.cpu(), all_preds_1.cpu(), 3, classes_speed)
 get_metrics(all_labels_2.cpu(), all_preds_2.cpu(), 3, classes_steering)
 
 #Show examples
-show_predicted_data(valloader, classes_speed, classes_steering, all_preds_1.cpu(), all_preds_2.cpu())
+show_predicted_data(valloader, classes_speed, classes_steering, all_preds_1.cpu(), all_preds_2.cpu(), mean, std)
