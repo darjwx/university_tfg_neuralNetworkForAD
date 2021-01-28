@@ -72,7 +72,8 @@ trainloader = DataLoader(dataset_train, batch_size, shuffle=True, num_workers=4)
 valloader = DataLoader(dataset_val, batch_size, shuffle=True, num_workers=4)
 
 print('Training with %d images' % (len(dataset_train)))
-running_loss = 0.0
+rloss1 = 0.0
+rloss2 = 0.0
 for epoch in range(num_epochs):
     for i, data in enumerate(trainloader):
         images = data['image']
@@ -91,14 +92,18 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
 
-        running_loss += loss.item()
+        rloss1 += loss1.item()
+        rloss2 += loss2.item()
 
         if i % 1000 == 999:    # print every 1000 mini-batches
-            print('[%d, %5d] loss: %.3f'
-                 % (epoch + 1, i + 1, running_loss / 1000))
+            print('[%d, %5d] loss speed: %.3f  loss direction: %.3f'
+                 % (epoch + 1, i + 1, rloss1 / 1000, rloss2 / 1000))
 
-            update_scalar_tb('training loss', running_loss / 1000, epoch * len(trainloader) + i)
-            running_loss = 0.0
+            update_scalar_tb('training loss speed', rloss1 / 1000, epoch * len(trainloader) + i)
+            update_scalar_tb('training loss direction', rloss2 / 1000, epoch * len(trainloader) + i)
+
+            rloss1 = 0.0
+            rloss2 = 0.0
 
 print('Finished training')
 

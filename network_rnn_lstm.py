@@ -94,7 +94,8 @@ trainloader = DataLoader(dataset_train, batch_size, shuffle=True)
 valloader = DataLoader(dataset_val, batch_size, shuffle=True)
 
 print('Training with %d groups of connected images' % (len(dataset_train)))
-running_loss = 0.0
+rloss1 = 0.0
+rloss2 = 0.0
 
 for epoch in range(num_epochs):
 
@@ -120,15 +121,18 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
 
-        running_loss += loss.item()
+        rloss1 += loss1.item()
+        rloss2 += loss2.item()
 
         # print every 100 groups
         if i % 100 == 99:
-            print('[%d, %5d] loss: %.3f'
-                 % (epoch + 1, i + 1, running_loss / 100))
-            update_scalar_tb('training loss', running_loss / 100, epoch * len(trainloader) + i)
+            print('[%d, %5d] loss speed: %.3f loss direction: %.3f'
+                 % (epoch + 1, i + 1, rloss1 / 100, rloss2 / 100))
+            update_scalar_tb('training loss speed', rloss1 / 100, epoch * len(trainloader) + i)
+            update_scalar_tb('training loss direction', rloss2 / 100, epoch * len(trainloader) + i)
 
-            running_loss = 0.0
+            rloss1 = 0.0
+            rloss2 = 0.0
 
 
 print('Finished training')

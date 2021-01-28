@@ -41,7 +41,8 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25):
             else:
                 model.eval()   # Set model to evaluate mode
 
-            running_loss = 0.0
+            rloss1 = 0.0
+            rloss2 = 0.0
             running_corrects_1 = 0
             running_corrects_2 = 0
 
@@ -68,19 +69,23 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25):
                         loss.backward()
                         optimizer.step()
 
-                running_loss += loss.item() * images.size(0)
+                rloss1 += loss1.item() * images.size(0)
+                rloss2 += loss2.item() * images.size(0)
                 running_corrects_1 += (predicted_1 == labels[:, 0]).sum().item()
                 running_corrects_2 += (predicted_2 == labels[:, 1]).sum().item()
 
-            epoch_loss = running_loss / len(dataloaders[phase].dataset)
+            epoch_loss1 = rloss1 / len(dataloaders[phase].dataset)
+            epoch_loss2 = rloss2 / len(dataloaders[phase].dataset)
+
             epoch_acc_1 = running_corrects_1 / len(dataloaders[phase].dataset)
             epoch_acc_2 = running_corrects_2 / len(dataloaders[phase].dataset)
 
             # TensorBoard
             if phase == 'train':
-                update_scalar_tb('Train loss per epoch', epoch_loss, epoch)
+                update_scalar_tb('Train loss per epoch: speed', epoch_loss1, epoch)
+                update_scalar_tb('Train loss per epoch: direction', epoch_loss2, epoch)
 
-            print('{} Loss: {:.4f} Acc: {:.4f}  {:.4f}'.format(phase, epoch_loss, epoch_acc_1, epoch_acc_2))
+            print('{} Loss speed: {:.4f} Loss direction: {:.4f} Acc: {:.4f}  {:.4f}'.format(phase, epoch_loss1, epoch_loss2, epoch_acc_1, epoch_acc_2))
 
             # deep copy the model
             epoch_acc = (epoch_acc_1 + epoch_acc_2) / 2
