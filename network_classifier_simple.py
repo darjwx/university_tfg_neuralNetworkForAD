@@ -18,6 +18,9 @@ import cv2 as cv
 # numpy
 import numpy as np
 
+# Random generator seed
+torch.manual_seed(1)
+
 # Parameters
 num_epochs = 4
 batch_size = 4
@@ -69,7 +72,7 @@ classes_speed = ['stop', 'stoping', 'accel']
 classes_steering = ['straight', 'left', 'right']
 
 trainloader = DataLoader(dataset_train, batch_size, shuffle=True, num_workers=4)
-valloader = DataLoader(dataset_val, batch_size, shuffle=True, num_workers=4)
+valloader = DataLoader(dataset_val, batch_size, shuffle=False, num_workers=4)
 
 print('Training with %d images' % (len(dataset_train)))
 rloss1 = 0.0

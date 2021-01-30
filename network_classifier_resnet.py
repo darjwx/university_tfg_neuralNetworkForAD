@@ -23,6 +23,9 @@ import cv2 as cv
 #Numpy
 import numpy as np
 
+# Random generator seed
+torch.manual_seed(1)
+
 # Functions
 def train_model(model, dataloaders, criterion, optimizer, num_epochs=25):
     since = time.time()
@@ -152,7 +155,7 @@ classes_speed = ['stop', 'stoping', 'accel']
 classes_steering = ['straight', 'left', 'right']
 
 trainloader = DataLoader(dataset_train, batch_size, shuffle=True, num_workers=4)
-valloader = DataLoader(dataset_val, batch_size, shuffle=True, num_workers=4)
+valloader = DataLoader(dataset_val, batch_size, shuffle=False, num_workers=4)
 
 dataloaders = {'train': trainloader, 'val': valloader}
 model = train_model(model, dataloaders, criterion, optimizer, num_epochs)

@@ -20,6 +20,9 @@ import cv2 as cv
 # numpy
 import numpy as np
 
+# Random generator seed
+torch.manual_seed(1)
+
 # Parameters
 input_size = 84
 num_layers = 2
@@ -91,7 +94,7 @@ classes_speed = ['stop', 'stoping', 'accel']
 classes_steering = ['straight', 'left', 'right']
 
 trainloader = DataLoader(dataset_train, batch_size, shuffle=True)
-valloader = DataLoader(dataset_val, batch_size, shuffle=True)
+valloader = DataLoader(dataset_val, batch_size, shuffle=False)
 
 print('Training with %d groups of connected images' % (len(dataset_train)))
 rloss1 = 0.0
