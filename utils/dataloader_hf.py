@@ -384,7 +384,7 @@ class DataLoaderHF(Dataset):
             }
         }
 
-        self.classes_speed = ['stop', 'stoping', 'accel']
+        self.classes_speed = ['maintain', 'stoping', 'accel']
 
         self.classes_steering = ['straight', 'left', 'right']
 
@@ -414,12 +414,12 @@ class DataLoaderHF(Dataset):
                     #Right
                     steering = 0
 
-            if aux_canbus_speed[i,1] == 0:
-                labels_1 = 'stop'
-            elif diff_speed > 0:
+            if diff_speed > 1:
                 labels_1 = 'accel'
-            else:
+            elif diff_speed < -1:
                 labels_1 = 'stoping'
+            else:
+                labels_1 = 'maintain'
 
             if abs(diff_steering) > 0.6 and steering == 1:
                 labels_2 = 'left'

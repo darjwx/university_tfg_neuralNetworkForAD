@@ -67,7 +67,7 @@ HOME_ROUTE = '/media/darjwx/ssd_data/data/sets/nuscenes/'
 dataset_train = DataLoaderHF(HOME_ROUTE, 'train', 1111, 850, composed)
 dataset_val = DataLoaderHF(HOME_ROUTE, 'val', 1111, 850, composed)
 
-classes_speed = ['stop', 'stoping', 'accel']
+classes_speed = ['maintain', 'stoping', 'accel']
 
 classes_steering = ['straight', 'left', 'right']
 
