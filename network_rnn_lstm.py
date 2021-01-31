@@ -13,6 +13,7 @@ import torchvision.transforms as transforms
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 # OpenCV
 import cv2 as cv
@@ -27,7 +28,7 @@ torch.manual_seed(1)
 input_size = 84
 num_layers = 2
 hidden_size = 128
-num_epochs = 5
+num_epochs = 15
 batch_size = 1
 learning_rate = 0.001
 num_classes = 3
@@ -83,6 +84,7 @@ model = model.to(device)
 criterion = nn.CrossEntropyLoss()
 #optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+scheduler = ReduceLROnPlateau(optimizer, 'max', 0.1, 2, verbose = True)
 
 # Custom Dataloader for NuScenes
 HOME_ROUTE = '/media/darjwx/ssd_data/data/sets/nuscenes/'
@@ -136,6 +138,33 @@ for epoch in range(num_epochs):
 
             rloss1 = 0.0
             rloss2 = 0.0
+
+
+    # Val acc for the scheduler step
+    correct1 = 0
+    correct2 = 0
+    for data in valloader:
+        images = data['image']
+        labels = data['label']
+
+        images = images.to(device)
+        labels = labels.to(device)
+
+        sequence_length = images.size(1)
+        labels = labels.reshape(-1, 2)
+
+        out1, out2 = model(images)
+
+        _, predicted_1 = torch.max(out1.data, 1)
+        _, predicted_2 = torch.max(out2.data, 1)
+        correct1 += (predicted_1 == labels[:, 0]).sum().item()
+        correct2 += (predicted_2 == labels[:, 1]).sum().item()
+
+    acc1 = correct1 / len(valloader)
+    acc2 = correct2 / len(valloader)
+    acc = (acc1 + acc2) / 2
+
+    scheduler.step(acc)
 
 
 print('Finished training')

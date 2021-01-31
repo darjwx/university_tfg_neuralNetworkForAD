@@ -16,6 +16,7 @@ import torchvision.models as models
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 # OpenCV
 import cv2 as cv
@@ -92,6 +93,7 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25):
 
             # deep copy the model
             epoch_acc = (epoch_acc_1 + epoch_acc_2) / 2
+            scheduler.step(epoch_acc)
             if phase == 'val' and epoch_acc > best_acc:
                 best_acc = epoch_acc
                 best_model_wts = copy.deepcopy(model.state_dict())
@@ -124,8 +126,8 @@ class MyModel(nn.Module):
         return out1, out2
 
 # Parameters
-num_epochs = 4
-batch_size = 20
+num_epochs = 15
+batch_size = 10
 classes_1 = 3
 classes_2 = 3
 learning_rate = 0.001
@@ -145,6 +147,7 @@ model = model.to(device)
 
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+scheduler = ReduceLROnPlateau(optimizer, 'max', 0.1, 1, verbose = True)
 
 # Custom Dataloader for NuScenes
 HOME_ROUTE = '/media/darjwx/ssd_data/data/sets/nuscenes/'

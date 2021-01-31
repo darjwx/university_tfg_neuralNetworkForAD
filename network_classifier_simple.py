@@ -11,6 +11,7 @@ import torchvision.transforms as transforms
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 # OpenCV
 import cv2 as cv
@@ -22,8 +23,8 @@ import numpy as np
 torch.manual_seed(1)
 
 # Parameters
-num_epochs = 4
-batch_size = 4
+num_epochs = 15
+batch_size = 10
 learning_rate = 0.001
 
 # Transforms
@@ -61,6 +62,7 @@ model = model.to(device)
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=learning_rate)
+scheduler = ReduceLROnPlateau(optimizer, 'max', 0.1, 2, verbose = True)
 
 # Custom Dataloader for NuScenes
 HOME_ROUTE = '/media/darjwx/ssd_data/data/sets/nuscenes/'
@@ -82,7 +84,7 @@ for epoch in range(num_epochs):
         images = data['image']
         labels = data['label']
 
-        images = images.to(device)
+        images =
         labels = labels.to(device)
 
         out1, out2 = model(images)
@@ -107,6 +109,30 @@ for epoch in range(num_epochs):
 
             rloss1 = 0.0
             rloss2 = 0.0
+
+    # Val acc for the scheduler step
+    correct1 = 0
+    correct2 = 0
+    for data in valloader:
+        images = data['image']
+        labels = data['label']
+
+        images = images.to(device)
+        labels = labels.to(device)
+
+        out1, out2 = model(images)
+
+        _, predicted_1 = torch.max(out1.data, 1)
+        _, predicted_2 = torch.max(out2.data, 1)
+        correct1 += (predicted_1 == labels[:, 0]).sum().item()
+        correct2 += (predicted_2 == labels[:, 1]).sum().item()
+
+    acc1 = correct1 / len(valloader)
+    acc2 = correct2 / len(valloader)
+    acc = (acc1 + acc2) / 2
+
+    scheduler.step(acc)
+
 
 print('Finished training')
 
@@ -155,7 +181,6 @@ with torch.no_grad():
 
         all_preds_1 = torch.cat((all_preds_1, predicted_1), dim=0)
         all_preds_2 = torch.cat((all_preds_2, predicted_2), dim=0)
-
         all_labels_1 = torch.cat((all_labels_1, labels[:, 0]), dim=0)
         all_labels_2 = torch.cat((all_labels_2, labels[:, 1]), dim=0)
 
