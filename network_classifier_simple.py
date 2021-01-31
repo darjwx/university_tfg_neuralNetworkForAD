@@ -77,9 +77,9 @@ trainloader = DataLoader(dataset_train, batch_size, shuffle=True, num_workers=4)
 valloader = DataLoader(dataset_val, batch_size, shuffle=False, num_workers=4)
 
 print('Training with %d images' % (len(dataset_train)))
-rloss1 = 0.0
-rloss2 = 0.0
 for epoch in range(num_epochs):
+    rloss1 = 0.0
+    rloss2 = 0.0
     for i, data in enumerate(trainloader):
         images = data['image']
         labels = data['label']

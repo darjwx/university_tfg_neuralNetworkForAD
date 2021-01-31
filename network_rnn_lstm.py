@@ -99,11 +99,10 @@ trainloader = DataLoader(dataset_train, batch_size, shuffle=True)
 valloader = DataLoader(dataset_val, batch_size, shuffle=False)
 
 print('Training with %d groups of connected images' % (len(dataset_train)))
-rloss1 = 0.0
-rloss2 = 0.0
 
 for epoch in range(num_epochs):
-
+    rloss1 = 0.0
+    rloss2 = 0.0
     for i, data in enumerate(trainloader):
 
         optimizer.zero_grad()
