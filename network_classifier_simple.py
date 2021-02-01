@@ -84,7 +84,7 @@ for epoch in range(num_epochs):
         images = data['image']
         labels = data['label']
 
-        images =
+        images = images.to(device)
         labels = labels.to(device)
 
         out1, out2 = model(images)
