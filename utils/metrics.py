@@ -4,6 +4,8 @@ from sklearn.metrics import recall_score, precision_score, f1_score, confusion_m
 # Pytorch
 from torchvision.utils import make_grid
 
+from statistics import mode
+
 # Numpy and matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -129,3 +131,30 @@ def visualize_model(net, images):
 
     writer.add_graph(net, images)
     writer.close()
+
+def dummy_classifier(ground_truth, const = 0):
+    """
+    Creates a dummy classifier that always predicts the same value.
+    :param ground_truth: Ground truth labels.
+    :param const: value to be predicted.
+    """
+
+    stry = ['most_frequent', 'constant']
+    ground_truth = ground_truth.numpy().astype(np.uint8)
+
+    for i in stry:
+        if i == 'most_frequent':
+            mf = mode(ground_truth)
+            pred = np.full_like(ground_truth, mf)
+        elif i == 'constant':
+            pred = np.full_like(ground_truth, const)
+
+        aux = 0
+        for j in range(np.shape(ground_truth)[0]):
+            if pred[j] == ground_truth[j]:
+                aux += 1
+        score = (aux / np.shape(ground_truth)[0]) * 100
+
+        print('--------------------')
+        print('Strategy: %s' %(i))
+        print('Accuracy score of the dummy classifier: %.4f' %(score))

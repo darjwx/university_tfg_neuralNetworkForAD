@@ -1,7 +1,7 @@
 # Utils
 from utils.dataloader_hf import DataLoaderHF
 from utils.transforms import Rescale, ToTensor, Normalize
-from utils.metrics import get_metrics, show_predicted_data, update_scalar_tb, pr_curve_tb
+from utils.metrics import get_metrics, show_predicted_data, update_scalar_tb, pr_curve_tb, dummy_classifier
 
 # Misc
 import time
@@ -224,6 +224,12 @@ preds_2 = torch.cat([torch.stack(batch) for batch in preds_2])
 pr_curve_tb(3, all_labels_1, all_labels_2, preds_1, preds_2)
 
 #Per class statistics
+# Dummy classifier: most_frequent and constant
+print('Dummy classifier 1')
+dummy_classifier(all_labels_1.cpu(), 1)
+print('Dummy classifier 2')
+dummy_classifier(all_labels_2.cpu(), 1)
+
 #Accuracy
 for i in range(3):
     accuracy_speed = class_correct_1[i] / class_total_1[i]

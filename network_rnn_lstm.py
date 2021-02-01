@@ -3,7 +3,7 @@ from utils.dataloader_seq import DataLoaderSeq
 from utils.transforms import Rescale, ToTensor, Normalize
 
 # Metrics
-from utils.metrics import get_metrics, show_predicted_data, visualize_model, update_scalar_tb, pr_curve_tb
+from utils.metrics import get_metrics, show_predicted_data, visualize_model, update_scalar_tb, pr_curve_tb, dummy_classifier
 
 # Pytorch
 import torch
@@ -237,6 +237,12 @@ print('Accuracy 1: %1.3f  Accuracy 2: %1.3f'
       % (accuracy_t_1, accuracy_t_2))
 
 #Per class statistics
+# Dummy classifier: most_frequent and constant
+print('Dummy classifier 1')
+dummy_classifier(all_labels_1.cpu(), 1)
+print('Dummy classifier 2')
+dummy_classifier(all_labels_2.cpu(), 1)
+
 #Accuracy
 for i in range(3):
     accuracy_speed = class_correct_1[i] / class_total_1[i]
