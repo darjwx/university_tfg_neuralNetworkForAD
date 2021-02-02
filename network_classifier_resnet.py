@@ -51,7 +51,7 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25):
             running_corrects_2 = 0
 
             # Iterate over data.
-            for data in dataloaders[phase]:
+            for i, data in enumerate(dataloaders[phase]):
                 images = data['image']
                 labels = data['label']
 
@@ -73,6 +73,10 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25):
                         loss.backward()
                         optimizer.step()
 
+                        #Tensorboard
+                        update_scalar_tb('Train loss per epoch: speed', loss1, epoch * len(dataloaders[phase].dataset) + i)
+                        update_scalar_tb('Train loss per epoch: direction', loss2, epoch * len(dataloaders[phase].dataset) + i)
+
                 rloss1 += loss1.item() * images.size(0)
                 rloss2 += loss2.item() * images.size(0)
                 running_corrects_1 += (predicted_1 == labels[:, 0]).sum().item()
@@ -83,11 +87,6 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25):
 
             epoch_acc_1 = running_corrects_1 / len(dataloaders[phase].dataset)
             epoch_acc_2 = running_corrects_2 / len(dataloaders[phase].dataset)
-
-            # TensorBoard
-            if phase == 'train':
-                update_scalar_tb('Train loss per epoch: speed', epoch_loss1, epoch)
-                update_scalar_tb('Train loss per epoch: direction', epoch_loss2, epoch)
 
             print('{} Loss speed: {:.4f} Loss direction: {:.4f} Acc: {:.4f}  {:.4f}'.format(phase, epoch_loss1, epoch_loss2, epoch_acc_1, epoch_acc_2))
 

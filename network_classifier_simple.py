@@ -93,6 +93,9 @@ for epoch in range(num_epochs):
         loss2 = criterion(out2, labels[:, 1])
         loss = loss1 + loss2
 
+        update_scalar_tb('training loss speed', loss1, epoch * len(trainloader) + i)
+        update_scalar_tb('training loss direction', loss2, epoch * len(trainloader) + i)
+
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -103,9 +106,6 @@ for epoch in range(num_epochs):
         if i % 1000 == 999:    # print every 1000 mini-batches
             print('[%d, %5d] loss speed: %.3f  loss direction: %.3f'
                  % (epoch + 1, i + 1, rloss1 / 1000, rloss2 / 1000))
-
-            update_scalar_tb('training loss speed', rloss1 / 1000, epoch * len(trainloader) + i)
-            update_scalar_tb('training loss direction', rloss2 / 1000, epoch * len(trainloader) + i)
 
             rloss1 = 0.0
             rloss2 = 0.0
