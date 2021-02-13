@@ -104,6 +104,7 @@ def update_scalar_tb(tag, scalar, x):
     """
 
     writer.add_scalar(tag, scalar, x)
+    writer.close()
 
 def pr_curve_tb(num_classes, labels_1, labels_2, preds_1, preds_2):
     """
@@ -121,6 +122,7 @@ def pr_curve_tb(num_classes, labels_1, labels_2, preds_1, preds_2):
 
         writer.add_pr_curve('Precision-Recall speed' + str(i), labels_i_1, preds_1[:,i], global_step=0)
         writer.add_pr_curve('Precision-Recall direction' + str(i), labels_i_2, preds_2[:,i], global_step=0)
+        writer.close()
 
 def visualize_model(net, images):
     """
