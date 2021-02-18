@@ -236,8 +236,8 @@ with torch.no_grad():
             class_correct_2[label] += correct_2[i].item()
             class_total_2[label] += 1
 
-accuracy_t_1 = correct_total_1 / len(valloader.dataset)
-accuracy_t_2 = correct_total_2 / len(valloader.dataset)
+accuracy_t_1 = correct_total_1 / dataset_val.true_length()
+accuracy_t_2 = correct_total_2 / dataset_val.true_length()
 print('Accuracy 1: %1.3f  Accuracy 2: %1.3f'
       % (accuracy_t_1, accuracy_t_2))
 

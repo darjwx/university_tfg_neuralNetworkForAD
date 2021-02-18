@@ -469,6 +469,13 @@ class DataLoaderSeq(Dataset):
     def __len__(self):
         return np.shape(self.seq_length)[0]
 
+    def true_length(self):
+        aux = 0
+        for i in range(np.shape(self.seq_length)[0]):
+            aux += self.seq_length[i]
+
+        return aux
+
     def __getitem__(self, idx):
         seq = self.seq_length[idx]
 
