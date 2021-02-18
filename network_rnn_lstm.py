@@ -62,19 +62,22 @@ class CNNtoLSTM(nn.Module):
 
 
     def forward(self, x):
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
-        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
+        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, device=device)
+        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, device=device)
 
-        x = x.view(-1, 3, 225, 400)
+        batch_size, sl, C, H, W = x.size()
+        x = x.view(batch_size * sl, C, H, W)
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
         x = x.view(-1, 32 * 53 * 97)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = x.view(batch_size, x.size(0), -1)
+
+        x = x.unsqueeze(0)
         x, _ = self.lstm(x, (h0, c0))
-        out1 = self.fc3(x.view(-1, hidden_size))
-        out2 = self.fc4(x.view(-1, hidden_size))
+        x = x.view(-1, hidden_size)
+        out1 = self.fc3(x)
+        out2 = self.fc4(x)
 
         return out1, out2
 
@@ -84,10 +87,15 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = CNNtoLSTM(input_size, hidden_size, num_layers, num_classes)
 model = model.to(device)
 
-weights = torch.tensor([1., 6.67, 6.29], device=device)
-criterion = nn.CrossEntropyLoss(weight=weights)
-optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
-# optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-5)
+weights1 = torch.tensor([1., 6.67, 6.29], device=device)
+weights2 = torch.tensor([1., 4.68, 4.73], device=device)
+
+criterion1 = nn.CrossEntropyLoss(weight=weights1)
+optimizer1 = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-4)
+criterion2 = nn.CrossEntropyLoss(weight=weights2)
+optimizer2 = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-4)
+# optimizer1 = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=5e-4)
+# optimizer2 = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=5e-4)
 # scheduler = ReduceLROnPlateau(optimizer, 'min', 0.1, 2, verbose = True)
 
 # Custom Dataloader for NuScenes
@@ -108,6 +116,7 @@ for epoch in range(num_epochs):
     rloss1 = 0.0
     rloss2 = 0.0
 
+    model.train()
     for i, data in enumerate(trainloader):
 
         model.zero_grad()
@@ -120,15 +129,16 @@ for epoch in range(num_epochs):
         out1, out2 = model(images)
 
         labels = labels.view(-1, 2)
-        loss1 = criterion(out1, labels[:, 0])
-        loss2 = criterion(out2, labels[:, 1])
-        loss = loss1 + loss2
+        loss1 = criterion1(out1, labels[:, 0])
+        loss2 = criterion2(out2, labels[:, 1])
 
         update_scalar_tb('training loss speed', loss1, epoch * len(trainloader) + i)
         update_scalar_tb('training loss direction', loss2, epoch * len(trainloader) + i)
 
-        loss.backward()
-        optimizer.step()
+        loss1.backward(retain_graph=True)
+        loss2.backward(retain_graph=True)
+        optimizer1.step()
+        optimizer2.step()
 
         rloss1 += loss1.item()
         rloss2 += loss2.item()
@@ -142,6 +152,8 @@ for epoch in range(num_epochs):
             rloss2 = 0.0
 
     # Validation loss
+    model.eval()
+
     with torch.no_grad():
         for i, data in enumerate(valloader):
             images = data['image']
@@ -153,12 +165,11 @@ for epoch in range(num_epochs):
             labels = labels.view(-1, 2)
 
             out1, out2 = model(images)
-            loss1_val = criterion(out1, labels[:, 0])
-            loss2_val = criterion(out2, labels[:, 1])
+            loss1_val = criterion1(out1, labels[:, 0])
+            loss2_val = criterion2(out2, labels[:, 1])
 
             update_scalar_tb('validation loss speed', loss1_val, epoch * len(valloader) + i)
             update_scalar_tb('validation loss direction', loss2_val, epoch * len(valloader) + i)
-
 
 print('Finished training')
 
@@ -184,6 +195,7 @@ all_labels_2 = all_labels_2.to(device)
 preds_1 = []
 preds_2 = []
 
+model.eval()
 with torch.no_grad():
     for v, data in enumerate(valloader):
 
