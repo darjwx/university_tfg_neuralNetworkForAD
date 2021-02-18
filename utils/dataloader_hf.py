@@ -414,16 +414,16 @@ class DataLoaderHF(Dataset):
                     #Right
                     steering = 0
 
-            if diff_speed > 1:
+            if diff_speed > 1.2:
                 labels_1 = 'accel'
-            elif diff_speed < -1:
+            elif diff_speed < -1.2:
                 labels_1 = 'stoping'
             else:
                 labels_1 = 'maintain'
 
-            if abs(diff_steering) > 0.6 and steering == 1:
+            if abs(diff_steering) > 4 and steering == 1:
                 labels_2 = 'left'
-            elif abs(diff_steering) > 0.6 and steering == 0:
+            elif abs(diff_steering) > 4 and steering == 0:
                 labels_2 = 'right'
             else:
                 labels_2 = 'straight'
