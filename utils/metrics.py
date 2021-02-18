@@ -46,7 +46,7 @@ def get_metrics(labels_true, labels_pred, num_classes, classes):
     plt.show()
 
 
-def show_predicted_data(dataloader, classes_1, classes_2, labels_pred_1, labels_pred_2, mean, std):
+def show_predicted_data(dataloader, classes_1, classes_2, labels_pred_1, labels_pred_2, mean, std, seq=False):
     """
     Shows a batch of images with their corresponding prediction and ground truth.
     :param dataloader: Dataloader variable from pytorch with images and labels.
@@ -81,6 +81,13 @@ def show_predicted_data(dataloader, classes_1, classes_2, labels_pred_1, labels_
     for i, data in enumerate(dataloader):
         images = data['image']
         labels = data['label']
+
+
+        if seq:
+            labels = labels.view(-1, 2)
+
+            batch_size, sl, C, H, W = images.size()
+            images = images.view(batch_size * sl, C, H, W)
 
         labels = labels.numpy()
 
