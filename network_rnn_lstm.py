@@ -154,6 +154,8 @@ for epoch in range(num_epochs):
     # Validation loss
     model.eval()
 
+    correct_val_1 = 0
+    correct_val_2 = 0
     with torch.no_grad():
         for i, data in enumerate(valloader):
             images = data['image']
@@ -168,8 +170,15 @@ for epoch in range(num_epochs):
             loss1_val = criterion1(out1, labels[:, 0])
             loss2_val = criterion2(out2, labels[:, 1])
 
+            _, predicted_1 = torch.max(out1.data, 1)
+            _, predicted_2 = torch.max(out2.data, 1)
+            correct_val_1 += (predicted_1 == labels[:, 0]).sum().item()
+            correct_val_2 += (predicted_2 == labels[:, 1]).sum().item()
+
             update_scalar_tb('validation loss speed', loss1_val, epoch * len(valloader) + i)
             update_scalar_tb('validation loss direction', loss2_val, epoch * len(valloader) + i)
+
+        print('Val loss 1: %.4f --- Val loss 2: %.4f' % (correct_val_1/dataset_val.true_length(), correct_val_2/dataset_val.true_length()))
 
 print('Finished training')
 
