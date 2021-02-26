@@ -34,6 +34,9 @@ def get_metrics(labels_true, labels_pred, num_classes, classes):
     :param classes: List of classes.
     """
 
+    # Matplotlib theme
+    plt.style.use('classic')
+
     # Metrics
     recall = recall_score(labels_true, labels_pred, average=None, zero_division=0)
     precision = precision_score(labels_true, labels_pred, average=None, zero_division=0)
@@ -62,6 +65,9 @@ def show_predicted_data(dataloader, classes_1, classes_2, labels_pred_1, labels_
     :param mean: Mean of each channel.
     :param std: Standard deviation of each channel.
     """
+
+    # Matplotlib theme
+    plt.style.use('classic')
 
     # Adapts the image for plt.imshow
     def imshow(image):
