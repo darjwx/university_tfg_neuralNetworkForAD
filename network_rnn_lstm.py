@@ -178,7 +178,7 @@ for epoch in range(num_epochs):
             update_scalar_tb('validation loss speed', loss1_val, epoch * len(valloader) + i)
             update_scalar_tb('validation loss direction', loss2_val, epoch * len(valloader) + i)
 
-        print('Val loss 1: %.4f --- Val loss 2: %.4f' % (correct_val_1/dataset_val.true_length(), correct_val_2/dataset_val.true_length()))
+        print('Val acc 1: %.4f --- Val acc 2: %.4f' % (correct_val_1/dataset_val.true_length(), correct_val_2/dataset_val.true_length()))
 
 print('Finished training')
 
