@@ -3,7 +3,7 @@ from utils.dataloader_seq import DataLoaderSeq
 from utils.transforms import Rescale, ToTensor, Normalize
 
 # Metrics
-from utils.metrics import get_metrics, show_predicted_data, update_scalar_tb, pr_curve_tb, dummy_classifier
+from utils.metrics import get_metrics, show_predicted_data, update_scalar_tb, pr_curve_tb, dummy_classifier, draw_lineplot
 
 # Pytorch
 import torch
@@ -265,6 +265,10 @@ for i in range(3):
           % (classes_speed[i], accuracy_speed))
     print('Accuracy of %5s: %1.3f'
           % (classes_steering[i], accuracy_steering))
+
+# Plot commands vs time
+draw_lineplot(all_labels_1.cpu(), all_preds_1.cpu(), classes_speed)
+draw_lineplot(all_labels_2.cpu(), all_preds_2.cpu(), classes_steering)
 
 # p-r curve
 preds_1 = torch.cat([torch.stack(batch) for batch in preds_1])

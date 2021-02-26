@@ -6,9 +6,14 @@ from torchvision.utils import make_grid
 
 from statistics import mode
 
-# Numpy and matplotlib
+# Numpy, matplotlib and pandas
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
+
+# Seaborn
+import seaborn as sns
+sns.set_theme(style='darkgrid', palette='pastel')
 
 # TensorBoard
 from torch.utils.tensorboard import SummaryWriter
@@ -101,6 +106,44 @@ def show_predicted_data(dataloader, classes_1, classes_2, labels_pred_1, labels_
         print('------')
 
         imshow(make_grid(images))
+
+def draw_lineplot(labels, preds, classes):
+    """
+    Builds a commands versus time lineplot.
+    :param labels: Ground truth labels.
+    :param preds: Predicted labels.
+    :param classes: Name of each class.
+    """
+
+    type1 = np.empty(np.shape(labels)[0], dtype=np.dtype('<U122'))
+    type2 = np.empty(np.shape(labels)[0], dtype=np.dtype('<U122'))
+    lb = np.empty(np.shape(labels)[0], dtype=np.dtype('<U122'))
+    pr = np.empty(np.shape(labels)[0], dtype=np.dtype('<U122'))
+    time = np.empty(np.shape(labels)[0])
+
+    # Build the data vectors
+    labels = labels.numpy().astype(np.uint8)
+    preds = preds.numpy().astype(np.uint8)
+    for i in range(np.shape(labels)[0]):
+        lb[i] = classes[labels[i]]
+        type1[i] = 'gt'
+        pr[i] = classes[preds[i]]
+        type2[i] = 'preds'
+        time[i] = i / 10
+
+    commands = np.concatenate((lb, pr), 0)
+    type = np.concatenate((type1, type2), 0)
+    time = np.concatenate((time, time), 0)
+
+    # Dataframe
+    d = {'time': time,
+         'commands': commands,
+         'type': type}
+    df = pd.DataFrame(data=d)
+
+    # Draw plot
+    sns.lineplot(x='time', y='commands', hue='type', data=df)
+
 
 def update_scalar_tb(tag, scalar, x):
     """
