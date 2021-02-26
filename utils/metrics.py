@@ -76,9 +76,6 @@ def show_predicted_data(dataloader, classes_1, classes_2, labels_pred_1, labels_
         for i in range(3):
             img[i] = img[i] * std[i] + mean[i]
 
-        # We want values between [0, 1]
-        img = img / 255
-
         img = img.numpy()
         # imshow expects and array with the form: H * W * Colour channels
         img = np.transpose(img, (1, 2, 0))

@@ -491,6 +491,7 @@ class DataLoaderSeq(Dataset):
         for i in range(seq):
             path = self.sensors_labelled_data['images']['CAM_FRONT'][id_s+i]
             image = cv.imread(path)
+            image = image / 255
             image = image.astype(np.float32)
 
             label_1 = self.labels_array[id_s+i][0]

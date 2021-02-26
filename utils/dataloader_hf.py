@@ -441,6 +441,7 @@ class DataLoaderHF(Dataset):
 
         path = self.sensors_labelled_data['images']['CAM_FRONT'][idx]
         image = cv.imread(path)
+        image = image / 255
         image = image.astype(np.float32)
         label_1 = self.labels_array[idx][0]
         label_2 = self.labels_array[idx][1]

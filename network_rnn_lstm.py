@@ -36,8 +36,8 @@ num_classes = 3
 
 # Transforms
 # Original resolution / 4 (900, 1600) (h, w)
-mean = (97.7419, 99.9757, 98.8718)
-std = (56.8975, 55.1809, 55.8246)
+mean = (0.3833, 0.3921, 0.3877)
+std = (0.2231, 0.2164, 0.2189)
 composed = transforms.Compose([Rescale((225,400), True),
                               ToTensor(True),
                               Normalize(mean, std, True)])
