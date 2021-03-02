@@ -112,27 +112,28 @@ for epoch in range(num_epochs):
             rloss2 = 0.0
 
     # Val acc for the scheduler step
-    correct1 = 0
-    correct2 = 0
-    for data in valloader:
-        images = data['image']
-        labels = data['label']
+    with torch.no_grad():
+        correct1 = 0
+        correct2 = 0
+        for data in valloader:
+            images = data['image']
+            labels = data['label']
 
-        images = images.to(device)
-        labels = labels.to(device)
+            images = images.to(device)
+            labels = labels.to(device)
 
-        out1, out2 = model(images)
+            out1, out2 = model(images)
 
-        _, predicted_1 = torch.max(out1.data, 1)
-        _, predicted_2 = torch.max(out2.data, 1)
-        correct1 += (predicted_1 == labels[:, 0]).sum().item()
-        correct2 += (predicted_2 == labels[:, 1]).sum().item()
+            _, predicted_1 = torch.max(out1.data, 1)
+            _, predicted_2 = torch.max(out2.data, 1)
+            correct1 += (predicted_1 == labels[:, 0]).sum().item()
+            correct2 += (predicted_2 == labels[:, 1]).sum().item()
 
-    acc1 = correct1 / len(valloader)
-    acc2 = correct2 / len(valloader)
-    acc = (acc1 + acc2) / 2
+        acc1 = correct1 / len(valloader)
+        acc2 = correct2 / len(valloader)
+        acc = (acc1 + acc2) / 2
 
-    scheduler.step(acc)
+        scheduler.step(acc)
 
 
 print('Finished training')
