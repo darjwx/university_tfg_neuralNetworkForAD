@@ -144,7 +144,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = MyModel(classes_1, classes_2)
 model = model.to(device)
 
-criterion = nn.CrossEntropyLoss()
+weights = torch.tensor([1., 5.68, 5.51], device=device)
+criterion = nn.CrossEntropyLoss(weight=weights)
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 scheduler = ReduceLROnPlateau(optimizer, 'max', 0.1, 1, verbose = True)
 
