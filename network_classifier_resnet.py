@@ -133,8 +133,8 @@ learning_rate = 0.001
 
 # Transforms
 # Original resolution / 4 (900, 1600) (h, w)
-mean = (0.3833, 0.3921, 0.3877)
-std = (0.2231, 0.2164, 0.2189)
+mean = (0.485, 0.456, 0.406)
+std = (0.229, 0.224, 0.225)
 composed = transforms.Compose([Rescale((225,400)),
                               ToTensor(),
                               Normalize(mean, std)])
