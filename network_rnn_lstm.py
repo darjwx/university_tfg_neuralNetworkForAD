@@ -87,15 +87,12 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = CNNtoLSTM(input_size, hidden_size, num_layers, num_classes)
 model = model.to(device)
 
-weights1 = torch.tensor([1., 6.67, 6.29], device=device)
-weights2 = torch.tensor([1., 4.68, 4.73], device=device)
+weights = torch.tensor([1., 6.31, 5.945], device=device)
 
-criterion1 = nn.CrossEntropyLoss(weight=weights1)
-optimizer1 = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-4)
-criterion2 = nn.CrossEntropyLoss(weight=weights2)
-optimizer2 = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-4)
-# optimizer1 = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=5e-4)
-# optimizer2 = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=5e-4)
+criterion = nn.CrossEntropyLoss(weight=weights)
+optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-4)
+
+# optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=5e-4)
 # scheduler = ReduceLROnPlateau(optimizer, 'min', 0.1, 2, verbose = True)
 
 # Custom Dataloader for NuScenes
@@ -129,16 +126,15 @@ for epoch in range(num_epochs):
         out1, out2 = model(images)
 
         labels = labels.view(-1, 2)
-        loss1 = criterion1(out1, labels[:, 0])
-        loss2 = criterion2(out2, labels[:, 1])
+        loss1 = criterion(out1, labels[:, 0])
+        loss2 = criterion(out2, labels[:, 1])
+        loss = loss1 + loss2
 
         update_scalar_tb('training loss speed', loss1, epoch * len(trainloader) + i)
         update_scalar_tb('training loss direction', loss2, epoch * len(trainloader) + i)
 
-        loss1.backward(retain_graph=True)
-        loss2.backward(retain_graph=True)
-        optimizer1.step()
-        optimizer2.step()
+        loss.backward()
+        optimizer.step()
 
         rloss1 += loss1.item()
         rloss2 += loss2.item()
@@ -167,8 +163,8 @@ for epoch in range(num_epochs):
             labels = labels.view(-1, 2)
 
             out1, out2 = model(images)
-            loss1_val = criterion1(out1, labels[:, 0])
-            loss2_val = criterion2(out2, labels[:, 1])
+            loss1_val = criterion(out1, labels[:, 0])
+            loss2_val = criterion(out2, labels[:, 1])
 
             _, predicted_1 = torch.max(out1.data, 1)
             _, predicted_2 = torch.max(out2.data, 1)
