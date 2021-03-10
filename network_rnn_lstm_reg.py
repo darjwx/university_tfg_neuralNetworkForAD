@@ -1,0 +1,232 @@
+# Utils and dataloader
+from utils.dataloader_reg import DataLoaderReg
+from utils.transforms import Rescale, ToTensor, Normalize
+
+# Metrics
+from utils.metrics import show_predicted_data, update_scalar_tb, draw_reg_lineplot
+
+# Pytorch
+import torch
+from torch.utils.data import DataLoader
+import torchvision
+import torchvision.transforms as transforms
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+
+# OpenCV
+import cv2 as cv
+
+# numpy
+import numpy as np
+
+# Random generator seed
+torch.manual_seed(1)
+
+# Parameters
+input_size = 84
+num_layers = 1
+hidden_size = 128
+num_epochs = 15
+batch_size = 1
+learning_rate = 0.001
+output = 1
+coef = 0.15
+
+# Transforms
+# Original resolution / 4 (900, 1600) (h, w)
+mean = (0.3833, 0.3921, 0.3877)
+std = (0.2231, 0.2164, 0.2189)
+
+mean_sp = 19.2159
+std_sp = 3.0407
+mean_st = 25.0026
+std_st = 63.8881
+#mean_st, std_st, mean_sp, std_sp
+composed = transforms.Compose([Rescale((225,400), reg=True),
+                              ToTensor(reg=True),
+                              Normalize(mean, std, mean_sp, std_sp, mean_st, std_st, reg=True)])
+
+class CNNtoLSTM(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, output):
+        super(CNNtoLSTM, self).__init__()
+        self.num_layers = num_layers
+        self.hidden_size = hidden_size
+
+        # Conv layers
+        self.conv1 = nn.Conv2d(3, 16, 5)
+        self.conv2 = nn.Conv2d(16, 32, 5)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.fc1 = nn.Linear(32 * 53 * 97, 120)
+        self.fc2 = nn.Linear(120, 84)
+
+        # LSTM and output linear layers
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        self.fc3 = nn.Linear(hidden_size, output)
+        self.fc4 = nn.Linear(hidden_size, output)
+
+
+    def forward(self, x):
+        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, device=device)
+        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, device=device)
+
+        batch_size, sl, C, H, W = x.size()
+        x = x.view(batch_size * sl, C, H, W)
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = x.view(-1, 32 * 53 * 97)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+
+        x = x.unsqueeze(0)
+        x, _ = self.lstm(x, (h0, c0))
+        x = x.view(-1, hidden_size)
+        out1 = self.fc3(x)
+        out2 = self.fc4(x)
+
+        return out1, out2
+
+def get_accuracy(predicted, ground_truth, coef):
+    correct = 0
+
+    for i in range(np.shape(ground_truth)[0]):
+        gt_sup = abs(ground_truth[i]) * (1 + coef)
+        gt_inf = abs(ground_truth[i]) - abs(ground_truth[i]) * coef
+
+        if abs(predicted[i]) > gt_inf and abs(predicted[i]) < gt_sup:
+            correct += 1
+
+    return correct
+
+
+
+# Detect if we have a GPU available
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = CNNtoLSTM(input_size, hidden_size, num_layers, output)
+model = model.to(device)
+
+criterion = nn.L1Loss()
+optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-4)
+
+# optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=5e-4)
+# scheduler = ReduceLROnPlateau(optimizer, 'min', 0.1, 2, verbose = True)
+
+# Custom Dataloader for NuScenes
+HOME_ROUTE = '/media/darjwx/ssd_data/data/sets/nuscenes/'
+dataset_train = DataLoaderReg(HOME_ROUTE, 'train', 1111, 850, composed)
+dataset_val = DataLoaderReg(HOME_ROUTE, 'val', 1111, 850, composed)
+
+trainloader = DataLoader(dataset_train, batch_size, shuffle=True)
+valloader = DataLoader(dataset_val, batch_size, shuffle=False)
+
+print('Training with %d groups of connected images' % (len(dataset_train)))
+
+for epoch in range(num_epochs):
+    rloss1 = 0.0
+    rloss2 = 0.0
+
+    model.train()
+    for i, data in enumerate(trainloader):
+
+        model.zero_grad()
+        images = data['image']
+        canbus = data['can_bus']
+
+        images = images.to(device)
+        canbus = canbus.to(device)
+        canbus = canbus.squeeze(0)
+
+        out1, out2 = model(images)
+
+        # canbus[:,0] -> (42,) -- unsqueeze(1) -> (42,1)
+        loss1 = criterion(out1, canbus[:,0].unsqueeze(1))
+        loss2 = criterion(out2, canbus[:,1].unsqueeze(1))
+        loss = loss1 + loss2
+
+        update_scalar_tb('training loss speed', loss1, epoch * len(trainloader) + i)
+        update_scalar_tb('training loss steering', loss2, epoch * len(trainloader) + i)
+
+        loss.backward()
+        optimizer.step()
+
+        rloss1 += loss1.item()
+        rloss2 += loss2.item()
+
+        # print every 100 groups
+        if i % 100 == 99:
+            print('[%d, %5d] loss: %.3f -- loss %.3f'
+                 % (epoch + 1, i + 1, rloss1 / 100, rloss2 / 100))
+
+            rloss1 = 0.0
+            rloss2 = 0.0
+
+    # Validation loss
+    model.eval()
+
+    correct_val_1 = 0
+    correct_val_2 = 0
+    with torch.no_grad():
+        for i, data in enumerate(valloader):
+            images = data['image']
+            canbus = data['can_bus']
+
+            images = images.to(device)
+            canbus = canbus.to(device)
+            canbus = canbus.squeeze(0)
+
+
+            out1, out2 = model(images)
+            loss1_val = criterion(out1, canbus[:,0].unsqueeze(1))
+            loss2_val = criterion(out2, canbus[:,1].unsqueeze(1))
+
+            correct_val_1 += get_accuracy(out1, canbus[:,0], coef)
+            correct_val_2 += get_accuracy(out2, canbus[:,1], coef)
+
+            update_scalar_tb('validation loss speed', loss1_val, epoch * len(valloader) + i)
+            update_scalar_tb('validation loss steering', loss2_val, epoch * len(valloader) + i)
+
+        print('Val acc 1: %.4f -- Val acc 2: %.4f' % (correct_val_1/dataset_val.true_length(), correct_val_2/dataset_val.true_length()))
+
+print('Finished training')
+
+print('Validating with %d groups of connected images' % (len(dataset_val)))
+
+model.eval()
+correct1 = 0
+correct2 = 0
+
+all_preds_1 = torch.tensor([])
+all_preds_2 = torch.tensor([])
+all_labels_1 = torch.tensor([])
+all_labels_2 = torch.tensor([])
+all_preds_1 = all_preds_1.to(device)
+all_preds_2 = all_preds_2.to(device)
+all_labels_1 = all_labels_1.to(device)
+all_labels_2 = all_labels_2.to(device)
+
+with torch.no_grad():
+    for v, data in enumerate(valloader):
+
+        images = data['image']
+        canbus = data['can_bus']
+
+        images = images.to(device)
+        canbus = canbus.to(device)
+        canbus = canbus.squeeze(0)
+
+        out1, out2 = model(images)
+
+        all_preds_1 = torch.cat((all_preds_1, out1[:,0]), dim=0)
+        all_preds_2 = torch.cat((all_preds_2, out2[:,0]), dim=0)
+        all_labels_1 = torch.cat((all_labels_1, canbus[:,0]), dim=0)
+        all_labels_2 = torch.cat((all_labels_2, canbus[:,1]), dim=0)
+
+        correct1 += get_accuracy(out1, canbus[:,0], coef)
+        correct2 += get_accuracy(out2, canbus[:,1], coef)
+
+    print('Acc 1: %.4f -- Val acc 2: %.4f' % (correct1/dataset_val.true_length(), correct2/dataset_val.true_length()))
+
+draw_reg_lineplot(all_labels_1.cpu(), all_preds_1.cpu())
+draw_reg_lineplot(all_labels_2.cpu(), all_preds_2.cpu())
+
+show_predicted_data(valloader, None, None, all_preds_1.cpu(), all_preds_2.cpu(), mean, std, reg=True)

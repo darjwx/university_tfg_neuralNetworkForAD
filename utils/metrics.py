@@ -54,7 +54,7 @@ def get_metrics(labels_true, labels_pred, num_classes, classes):
     plt.show()
 
 
-def show_predicted_data(dataloader, classes_1, classes_2, labels_pred_1, labels_pred_2, mean, std, seq=False):
+def show_predicted_data(dataloader, classes_1, classes_2, labels_pred_1, labels_pred_2, mean, std, seq=False, reg=False):
     """
     Shows a batch of images with their corresponding prediction and ground truth.
     :param dataloader: Dataloader variable from pytorch with images and labels.
@@ -87,8 +87,15 @@ def show_predicted_data(dataloader, classes_1, classes_2, labels_pred_1, labels_
     labels_pred_2 = labels_pred_2.numpy().astype(np.uint8)
 
     for i, data in enumerate(dataloader):
+
         images = data['image']
-        labels = data['label']
+        if not reg:
+            labels = data['label']
+        else:
+            canbus = data['can_bus']
+            canbus = canbus.squeeze(0)
+            batch_size, sl, C, H, W = images.size()
+            images = images.view(batch_size * sl, C, H, W)
 
 
         if seq:
@@ -97,16 +104,28 @@ def show_predicted_data(dataloader, classes_1, classes_2, labels_pred_1, labels_
             batch_size, sl, C, H, W = images.size()
             images = images.view(batch_size * sl, C, H, W)
 
-        labels = labels.numpy()
+        if not reg:
+            labels = labels.numpy()
 
-        print('------')
-        for j in range(np.shape(labels)[0]):
-            info = 'predicted: {} gt: {}'.format(classes_1[labels_pred_1[j]], classes_1[labels[j,0]])
-            print(str(j), 'Speed: ', info)
+            print('------')
+            for j in range(np.shape(labels)[0]):
+                info = 'predicted: {} gt: {}'.format(classes_1[labels_pred_1[j]], classes_1[labels[j,0]])
+                print(str(j), 'Speed: ', info)
 
-            info = 'predicted: {} gt: {}'.format(classes_2[labels_pred_2[j]], classes_2[labels[j,1]])
-            print('  Steering: ', info)
-        print('------')
+                info = 'predicted: {} gt: {}'.format(classes_2[labels_pred_2[j]], classes_2[labels[j,1]])
+                print('  Steering: ', info)
+            print('------')
+
+        else:
+            print('------')
+            for j in range(np.shape(canbus)[0]):
+                info = 'predicted: {} gt: {}'.format(labels_pred_1[j], canbus[j,0])
+                print(str(j), 'Speed: ', info)
+
+                info = 'predicted: {} gt: {}'.format(labels_pred_2[j], canbus[j,1])
+                print('  Steering: ', info)
+            print('------')
+
 
         imshow(make_grid(images))
 
@@ -146,6 +165,37 @@ def draw_lineplot(labels, preds, classes):
 
     # Draw plot
     sns.lineplot(x='time', y='commands', hue='type', data=df)
+
+def draw_reg_lineplot(labels, preds):
+
+    type1 = np.empty(np.shape(labels)[0], dtype=np.dtype('<U122'))
+    type2 = np.empty(np.shape(labels)[0], dtype=np.dtype('<U122'))
+    lb = np.empty(np.shape(labels)[0], dtype=np.dtype(np.float32))
+    pr = np.empty(np.shape(labels)[0], dtype=np.dtype(np.float32))
+    time = np.empty(np.shape(labels)[0])
+
+    # Build the data vectors
+    labels = labels.numpy()
+    preds = preds.numpy()
+    for i in range(np.shape(labels)[0]):
+        type1[i] = 'gt'
+        type2[i] = 'preds'
+        time[i] = i / 10
+
+    commands = np.concatenate((labels, preds), 0)
+    type = np.concatenate((type1, type2), 0)
+    time = np.concatenate((time, time), 0)
+
+    # Dataframe
+    d = {'time': time,
+         'commands': commands,
+         'type': type}
+    df = pd.DataFrame(data=d)
+
+    # Draw plot
+    sns.lineplot(x='time', y='commands', hue='type', data=df)
+    plt.show()
+
 
 
 def update_scalar_tb(tag, scalar, x):
