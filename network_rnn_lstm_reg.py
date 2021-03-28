@@ -214,6 +214,13 @@ with torch.no_grad():
 
     print('Acc 1: %.4f -- Val acc 2: %.4f' % (correct1/dataset_val.true_length(), correct2/dataset_val.true_length()))
 
+# Unnormalize
+for i in range(all_labels_1.shape[0]):
+    all_labels_1[i] = all_labels_1[i] * std_sp + mean_sp
+    all_preds_1[i] = all_preds_1[i] * std_sp + mean_sp
+    all_labels_2[i] = all_labels_2[i] * std_st + mean_st
+    all_preds_2[i] = all_preds_2[i] * std_st + mean_st
+
 error1 = mean_squared_error(all_preds_1.cpu(), all_labels_1.cpu())
 error2 = mean_squared_error(all_preds_2.cpu(), all_labels_2.cpu())
 print('Mean squared error')

@@ -27,7 +27,7 @@ torch.manual_seed(1)
 input_size = 84
 num_layers = 1
 hidden_size = 128
-num_epochs = 1
+num_epochs = 15
 batch_size = 1
 learning_rate = 0.001
 output = 1
@@ -217,10 +217,12 @@ all_preds_1 = torch.tensor([])
 all_preds_2 = torch.tensor([])
 all_labels_1 = torch.tensor([])
 all_labels_2 = torch.tensor([])
+all_type = torch.tensor([])
 all_preds_1 = all_preds_1.to(device)
 all_preds_2 = all_preds_2.to(device)
 all_labels_1 = all_labels_1.to(device)
 all_labels_2 = all_labels_2.to(device)
+all_type = all_type.to(device)
 
 with torch.no_grad():
     for v, data in enumerate(valloader):
@@ -243,6 +245,22 @@ with torch.no_grad():
         all_preds_2 = torch.cat((all_preds_2, out2[idx,steering_type]), dim=0)
         all_labels_1 = torch.cat((all_labels_1, speed), dim=0)
         all_labels_2 = torch.cat((all_labels_2, steering), dim=0)
+        all_type = torch.cat((all_type, steering_type), dim=0)
+
+# Unnormalize
+for i in range(all_labels_1.shape[0]):
+    all_labels_1[i] = all_labels_1[i] * std_sp + mean_sp
+    all_preds_1[i] = all_preds_1[i] * std_sp + mean_sp
+
+    if all_type[i] == 0:
+        all_labels_2[i] = all_labels_2[i] * std_st0 + mean_st0
+        all_preds_2[i] = all_preds_2[i] * std_st0 + mean_st0
+    elif all_type[i] == 1:
+        all_labels_2[i] = all_labels_2[i] * std_st1 + mean_st1
+        all_preds_2[i] = all_preds_2[i] * std_st1 + mean_st1
+    else:
+        all_labels_2[i] = all_labels_2[i] * std_st2 + mean_st2
+        all_preds_2[i] = all_preds_2[i] * std_st2 + mean_st2
 
 error1 = mean_squared_error(all_preds_1.cpu(), all_labels_1.cpu())
 error2 = mean_squared_error(all_preds_2.cpu(), all_labels_2.cpu())
