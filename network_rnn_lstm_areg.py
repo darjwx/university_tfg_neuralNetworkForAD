@@ -100,18 +100,6 @@ class AidedRegression(nn.Module):
 
         return out1, out2, type
 
-def get_accuracy(predicted, ground_truth, coef):
-    correct = 0
-
-    for i in range(np.shape(ground_truth)[0]):
-        gt_sup = abs(ground_truth[i]) * (1 + coef)
-        gt_inf = abs(ground_truth[i]) - abs(ground_truth[i]) * coef
-
-        if abs(predicted[i]) > gt_inf and abs(predicted[i]) < gt_sup:
-            correct += 1
-
-    return correct
-
 
 
 # Detect if we have a GPU available

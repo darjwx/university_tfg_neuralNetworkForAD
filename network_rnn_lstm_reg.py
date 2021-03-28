@@ -3,7 +3,7 @@ from utils.dataloader_reg import DataLoaderReg
 from utils.transforms import Rescale, ToTensor, Normalize
 
 # Metrics
-from utils.metrics import show_predicted_data, update_scalar_tb, draw_reg_lineplot
+from utils.metrics import show_predicted_data, update_scalar_tb, draw_reg_lineplot, get_accuracy
 
 # Pytorch
 import torch
@@ -85,18 +85,6 @@ class CNNtoLSTM(nn.Module):
         out2 = self.fc4(x)
 
         return out1, out2
-
-def get_accuracy(predicted, ground_truth, coef):
-    correct = 0
-
-    for i in range(np.shape(ground_truth)[0]):
-        gt_sup = abs(ground_truth[i]) * (1 + coef)
-        gt_inf = abs(ground_truth[i]) - abs(ground_truth[i]) * coef
-
-        if abs(predicted[i]) > gt_inf and abs(predicted[i]) < gt_sup:
-            correct += 1
-
-    return correct
 
 
 

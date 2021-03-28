@@ -263,3 +263,22 @@ def dummy_classifier(ground_truth, const = 0):
         print('--------------------')
         print('Strategy: %s' %(i))
         print('Accuracy score of the dummy classifier: %.4f' %(score))
+
+# Regression metrics
+def get_accuracy(predicted, ground_truth, coef):
+    """
+    Calculates accuracy with a confidence coef.
+    :param predicted: predicted data.
+    :param ground_truth: Ground truth.
+    :param coef: confidence coef.
+    """
+    correct = 0
+
+    for i in range(np.shape(ground_truth)[0]):
+        gt_sup = abs(ground_truth[i]) * (1 + coef)
+        gt_inf = abs(ground_truth[i]) - abs(ground_truth[i]) * coef
+
+        if abs(predicted[i]) > gt_inf and abs(predicted[i]) < gt_sup:
+            correct += 1
+
+    return correct
