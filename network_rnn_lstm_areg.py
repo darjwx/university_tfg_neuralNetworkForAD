@@ -3,7 +3,7 @@ from utils.dataloader_areg import DataLoaderAReg
 from utils.transforms import Rescale, ToTensor, Normalize
 
 # Metrics
-from utils.metrics import show_predicted_data, update_scalar_tb, draw_reg_lineplot
+from utils.metrics import show_predicted_data, update_scalar_tb, draw_reg_lineplot, mean_squared_error
 
 # Pytorch
 import torch
@@ -27,7 +27,7 @@ torch.manual_seed(1)
 input_size = 84
 num_layers = 1
 hidden_size = 128
-num_epochs = 15
+num_epochs = 1
 batch_size = 1
 learning_rate = 0.001
 output = 1
@@ -243,6 +243,11 @@ with torch.no_grad():
         all_preds_2 = torch.cat((all_preds_2, out2[idx,steering_type]), dim=0)
         all_labels_1 = torch.cat((all_labels_1, speed), dim=0)
         all_labels_2 = torch.cat((all_labels_2, steering), dim=0)
+
+error1 = mean_squared_error(all_preds_1.cpu(), all_labels_1.cpu())
+error2 = mean_squared_error(all_preds_2.cpu(), all_labels_2.cpu())
+print('Mean squared error')
+print('Speed: %.4f -- Steering %.4f' %(error1, error2))
 
 draw_reg_lineplot(all_labels_1.cpu(), all_preds_1.cpu())
 draw_reg_lineplot(all_labels_2.cpu(), all_preds_2.cpu())

@@ -3,7 +3,7 @@ from utils.dataloader_reg import DataLoaderReg
 from utils.transforms import Rescale, ToTensor, Normalize
 
 # Metrics
-from utils.metrics import show_predicted_data, update_scalar_tb, draw_reg_lineplot, get_accuracy
+from utils.metrics import show_predicted_data, update_scalar_tb, draw_reg_lineplot, get_accuracy, mean_squared_error
 
 # Pytorch
 import torch
@@ -213,6 +213,11 @@ with torch.no_grad():
         correct2 += get_accuracy(out2, canbus[:,1], coef)
 
     print('Acc 1: %.4f -- Val acc 2: %.4f' % (correct1/dataset_val.true_length(), correct2/dataset_val.true_length()))
+
+error1 = mean_squared_error(all_preds_1.cpu(), all_labels_1.cpu())
+error2 = mean_squared_error(all_preds_2.cpu(), all_labels_2.cpu())
+print('Mean squared error')
+print('Speed: %.4f -- Steering %.4f' %(error1, error2))
 
 draw_reg_lineplot(all_labels_1.cpu(), all_preds_1.cpu())
 draw_reg_lineplot(all_labels_2.cpu(), all_preds_2.cpu())

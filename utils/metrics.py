@@ -282,3 +282,17 @@ def get_accuracy(predicted, ground_truth, coef):
             correct += 1
 
     return correct
+
+def mean_squared_error(preds, gt):
+    """
+    Calculates accuracy with a confidence coef.
+    :param predicted: predicted data.
+    :param ground_truth: Ground truth.
+    """
+    squared = 0.0
+    total = 0
+    for i in range(preds.shape[0]):
+        squared += (preds[i] - gt[i])**2
+        total += 1
+
+    return squared/total
