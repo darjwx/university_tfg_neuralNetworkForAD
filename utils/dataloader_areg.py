@@ -508,3 +508,35 @@ class DataLoaderAReg(Dataset):
 
     def get_seq_length(self):
         return self.seq_length
+
+    def create_video(self, name, preds_label, preds_steering, gt_steering, sensor = 'CAM_FRONT'):
+        aux_canbus_speed = self.can_bus['speed']
+        aux_canbus_steering = self.can_bus['steering']
+        aux_list = self.sensors_labelled_data['images'][sensor]
+
+        classes = ['straight', 'strong right', 'strong left']
+
+        fourcc = cv.VideoWriter_fourcc(*'MPEG')
+        video = cv.VideoWriter(name, fourcc, 10, (1100, 450))
+
+        print('Building video')
+        for i in tqdm(range(preds_label.shape[0])):
+            black = np.zeros((450, 300, 3), np.uint8)
+            black = cv.putText(black, 'GT labels', (10, 30), cv.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1, cv.LINE_AA)
+            black = cv.putText(black, classes[self.steering_type[i]], (10, 60), cv.FONT_HERSHEY_PLAIN, 1, (255,255,255), 1, cv.LINE_AA)
+            black = cv.putText(black, 'Pred labels', (10, 90), cv.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1, cv.LINE_AA)
+            black = cv.putText(black, classes[int(preds_label[i])], (10, 120), cv.FONT_HERSHEY_PLAIN, 1, (255,255,255), 1, cv.LINE_AA)
+            black = cv.putText(black, 'GT regression', (10, 150), cv.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1, cv.LINE_AA)
+            black = cv.putText(black, str(gt_steering[i]), (10, 180), cv.FONT_HERSHEY_PLAIN, 1, (255,255,255), 1, cv.LINE_AA)
+            black = cv.putText(black, 'Pred regression', (10, 210), cv.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1, cv.LINE_AA)
+            black = cv.putText(black, str(preds_steering[i]), (10, 240), cv.FONT_HERSHEY_PLAIN, 1, (255,255,255), 1, cv.LINE_AA)
+
+            img = cv.imread(aux_list[i])
+            img = img.astype(np.uint8)
+            img = cv.resize(img, (800, 450))
+            img = np.hstack((black, img))
+
+            video.write(img)
+
+
+        video.release()

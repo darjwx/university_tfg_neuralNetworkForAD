@@ -33,6 +33,7 @@ learning_rate = 0.001
 output = 1
 classes = 3
 coef = 0.15
+video = 'val_info_current_1.avi'
 
 # Transforms
 # Original resolution / 4 (900, 1600) (h, w)
@@ -218,11 +219,13 @@ all_preds_2 = torch.tensor([])
 all_labels_1 = torch.tensor([])
 all_labels_2 = torch.tensor([])
 all_type = torch.tensor([])
+pred_type = torch.tensor([])
 all_preds_1 = all_preds_1.to(device)
 all_preds_2 = all_preds_2.to(device)
 all_labels_1 = all_labels_1.to(device)
 all_labels_2 = all_labels_2.to(device)
 all_type = all_type.to(device)
+pred_type = pred_type.to(device)
 
 with torch.no_grad():
     for v, data in enumerate(valloader):
@@ -238,7 +241,7 @@ with torch.no_grad():
         steering = steering.to(device).squeeze(0)
 
         out1, out2, type = model(images)
-
+        _, predicted = torch.max(type.data, 1)
         idx = torch.arange(out2.size(0))
 
         all_preds_1 = torch.cat((all_preds_1, out1[:,0]), dim=0)
@@ -246,6 +249,7 @@ with torch.no_grad():
         all_labels_1 = torch.cat((all_labels_1, speed), dim=0)
         all_labels_2 = torch.cat((all_labels_2, steering), dim=0)
         all_type = torch.cat((all_type, steering_type), dim=0)
+        pred_type = torch.cat((pred_type, predicted), dim=0)
 
 # Unnormalize
 for i in range(all_labels_1.shape[0]):
@@ -262,6 +266,7 @@ for i in range(all_labels_1.shape[0]):
         all_labels_2[i] = all_labels_2[i] * std_st2 + mean_st2
         all_preds_2[i] = all_preds_2[i] * std_st2 + mean_st2
 
+dataset_val.create_video(video, pred_type.cpu(), all_preds_2.cpu(), all_labels_2.cpu())
 
 # Mean squared error
 error1, max1, min1 = mean_squared_error(all_preds_1.cpu(), all_labels_1.cpu())
