@@ -291,8 +291,10 @@ def mean_squared_error(preds, gt):
     """
     squared = 0.0
     total = 0
+    aux = []
     for i in range(preds.shape[0]):
         squared += (preds[i] - gt[i])**2
         total += 1
+        aux.append((preds[i] - gt[i])**2)
 
-    return squared/total
+    return squared/total, max(aux), min(aux)
