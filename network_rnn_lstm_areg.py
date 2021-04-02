@@ -33,7 +33,8 @@ learning_rate = 0.001
 output = 1
 classes = 3
 coef = 0.15
-video = 'val_info_current_1.avi'
+lw = 3
+video = 'name.avi'
 
 # Transforms
 # Original resolution / 4 (900, 1600) (h, w)
@@ -155,7 +156,7 @@ for epoch in range(num_epochs):
         # [1, 1, *]
         idx = torch.arange(out2.size(0))
         loss3 = criterion_reg(out2[idx,steering_type], steering)
-        loss = loss1 + loss2 + loss3
+        loss = loss1 + lw*loss2 + lw*loss3
 
         update_scalar_tb('Train loss: Speed regression', loss1, epoch * len(trainloader) + i)
         update_scalar_tb('Train loss: Steering classification', loss2, epoch * len(trainloader) + i)
