@@ -20,18 +20,30 @@ import cv2 as cv
 # numpy
 import numpy as np
 
+# Argument parser
+import argparse
+
 # Random generator seed
 torch.manual_seed(1)
 
+# Configurations
+parser = argparse.ArgumentParser()
+parser.add_argument('--epochs', type=int, default=15, help='Number of epochs')
+parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
+parser.add_argument('--layers', type=int, default=1, help='Number of LSTM layers')
+parser.add_argument('--coef', type=float, default=0.15, help='Coef for the accuracy')
+
+args = parser.parse_args()
+
 # Parameters
 input_size = 84
-num_layers = 1
+num_layers = args.layers
 hidden_size = 128
-num_epochs = 15
+num_epochs = args.epochs
 batch_size = 1
-learning_rate = 0.001
+learning_rate = args.lr
 output = 1
-coef = 0.15
+coef = args.coef
 
 # Transforms
 # Original resolution / 4 (900, 1600) (h, w)

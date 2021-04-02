@@ -20,21 +20,43 @@ import cv2 as cv
 # numpy
 import numpy as np
 
+# Argument parser
+import argparse
+
 # Random generator seed
 torch.manual_seed(1)
 
+# Configurations
+def str_to_bool(arg):
+    if arg.lower() in ['y', 'true', '1']:
+        return True
+    elif arg.lower() in ['n', 'false', '0']:
+        return False
+    else:
+        print('Wrong value')
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--epochs', type=int, default=15, help='Number of epochs')
+parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
+parser.add_argument('--lw', type=int, default=1, help='Loss weights')
+parser.add_argument('--video_name', type=str, default='val_info_custom.avi', help='Output video name')
+parser.add_argument('--layers', type=int, default=1, help='Number of LSTM layers')
+parser.add_argument('--video', type=str_to_bool, default=False, help='Wheter to build a video')
+
+args = parser.parse_args()
+
 # Parameters
 input_size = 84
-num_layers = 1
+num_layers = args.layers
 hidden_size = 128
-num_epochs = 15
+num_epochs = args.epochs
 batch_size = 1
-learning_rate = 0.001
+learning_rate = args.lr
 output = 1
 classes = 3
 coef = 0.15
-lw = 3
-video = 'name.avi'
+lw = args.lw
+video = args.video_name
 
 # Transforms
 # Original resolution / 4 (900, 1600) (h, w)
@@ -267,7 +289,8 @@ for i in range(all_labels_1.shape[0]):
         all_labels_2[i] = all_labels_2[i] * std_st2 + mean_st2
         all_preds_2[i] = all_preds_2[i] * std_st2 + mean_st2
 
-dataset_val.create_video(video, pred_type.cpu(), all_preds_2.cpu(), all_labels_2.cpu())
+if args.video:
+    dataset_val.create_video(video, pred_type.cpu(), all_preds_2.cpu(), all_labels_2.cpu())
 
 # Mean squared error
 error1, max1, min1 = mean_squared_error(all_preds_1.cpu(), all_labels_1.cpu())

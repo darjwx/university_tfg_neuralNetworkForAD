@@ -19,13 +19,24 @@ import cv2 as cv
 # numpy
 import numpy as np
 
+# Argument parser
+import argparse
+
 # Random generator seed
 torch.manual_seed(1)
 
+# Configurations
+parser = argparse.ArgumentParser()
+parser.add_argument('--epochs', type=int, default=15, help='Number of epochs')
+parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
+parser.add_argument('--batch', type=int, default=10, help='Batch size')
+
+args = parser.parse_args()
+
 # Parameters
-num_epochs = 15
-batch_size = 10
-learning_rate = 0.001
+num_epochs = args.epochs
+batch_size = args.batch
+learning_rate = args.lr
 
 # Transforms
 # Original resolution / 4 (900, 1600) (h, w)

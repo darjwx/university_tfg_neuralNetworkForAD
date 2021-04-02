@@ -24,8 +24,18 @@ import cv2 as cv
 #Numpy
 import numpy as np
 
+# Argument parser
+import argparse
+
 # Random generator seed
 torch.manual_seed(1)
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--epochs', type=int, default=15, help='Number of epochs')
+parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
+parser.add_argument('--batch', type=int, default=10, help='Batch size')
+
+args = parser.parse_args()
 
 # Functions
 def train_model(model, dataloaders, criterion, optimizer, num_epochs=25):
@@ -125,11 +135,11 @@ class MyModel(nn.Module):
         return out1, out2
 
 # Parameters
-num_epochs = 15
-batch_size = 10
+num_epochs = args.epochs
+batch_size = args.batch
 classes_1 = 3
 classes_2 = 3
-learning_rate = 0.001
+learning_rate = args.lr
 
 # Transforms
 # Original resolution / 4 (900, 1600) (h, w)

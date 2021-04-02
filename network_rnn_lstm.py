@@ -22,16 +22,26 @@ import cv2 as cv
 # numpy
 import numpy as np
 
+# Argument parser
+import argparse
+
 # Random generator seed
 torch.manual_seed(1)
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--epochs', type=int, default=15, help='Number of epochs')
+parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
+parser.add_argument('--layers', type=int, default=1, help='Number of LSTM layers')
+
+args = parser.parse_args()
+
 # Parameters
 input_size = 84
-num_layers = 1
+num_layers = args.layers
 hidden_size = 128
-num_epochs = 15
+num_epochs = args.epochs
 batch_size = 1
-learning_rate = 0.001
+learning_rate = args.lr
 num_classes = 3
 
 # Transforms
