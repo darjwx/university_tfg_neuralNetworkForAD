@@ -13,6 +13,7 @@ import torchvision.transforms as transforms
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torchvision.models as models
 
 # OpenCV
 import cv2 as cv
@@ -46,7 +47,6 @@ parser.add_argument('--video', type=str_to_bool, default=False, help='Wheter to 
 args = parser.parse_args()
 
 # Parameters
-input_size = 84
 num_layers = args.layers
 hidden_size = 128
 num_epochs = args.epochs
@@ -60,8 +60,8 @@ video = args.video_name
 
 # Transforms
 # Original resolution / 4 (900, 1600) (h, w)
-mean = (0.3833, 0.3921, 0.3877)
-std = (0.2231, 0.2164, 0.2189)
+mean = (0.485, 0.456, 0.406)
+std = (0.229, 0.224, 0.225)
 
 mean_sp = 19.2159
 std_sp = 3.0407
@@ -71,25 +71,24 @@ mean_st1 = -54.7190
 std_st1 = 174.4027
 mean_st2 = 23.4976
 std_st2 = 174.7414
+
 composed = transforms.Compose([Rescale((225,400), areg=True),
                               ToTensor(areg=True),
                               Normalize(mean, std, mean_sp, std_sp, mean_st0, std_st0, mean_st1, std_st1, mean_st2, std_st2, areg=True)])
 
 class AidedRegression(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, output):
+    def __init__(self, hidden_size, num_layers, output):
         super(AidedRegression, self).__init__()
         self.num_layers = num_layers
         self.hidden_size = hidden_size
 
-        # Conv layers
-        self.conv1 = nn.Conv2d(3, 16, 5)
-        self.conv2 = nn.Conv2d(16, 32, 5)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.fc1 = nn.Linear(32 * 53 * 97, 120)
-        self.fc2 = nn.Linear(120, 84)
+        # Conv layers: Resnet
+        self.resnet = models.resnet18(pretrained=True)
+        num_ftrs = self.resnet.fc.in_features
+        self.resnet.fc = nn.Identity()
 
         # LSTM
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        self.lstm = nn.LSTM(num_ftrs, hidden_size, num_layers, batch_first=True)
 
         # Regression: speed -> 1
         self.fc3 = nn.Linear(hidden_size, output)
@@ -106,11 +105,7 @@ class AidedRegression(nn.Module):
 
         batch_size, sl, C, H, W = x.size()
         x = x.view(batch_size * sl, C, H, W)
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 32 * 53 * 97)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
+        x = self.resnet(x)
 
         x = x.unsqueeze(0)
         x, _ = self.lstm(x, (h0, c0))
@@ -128,7 +123,7 @@ class AidedRegression(nn.Module):
 
 # Detect if we have a GPU available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model = AidedRegression(input_size, hidden_size, num_layers, output)
+model = AidedRegression(hidden_size, num_layers, output)
 model = model.to(device)
 
 criterion_reg = nn.L1Loss()
