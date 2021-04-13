@@ -419,28 +419,7 @@ class DataLoaderAReg(Dataset):
         aux_canbus_steering = self.can_bus['steering']
         self.steering_type = np.empty(np.shape(aux_canbus_steering)[0], dtype = object)
         for i in range(np.shape(aux_canbus_steering)[0]):
-            #First and second position do not have previous data
-            if i - 2 < 0:
-                s = 0
-                e = 3
-                ant = 0
-                weights = [1., 0.6, 0.4]
-            # Last position does not have future data
-            elif i + 2 >= np.shape(aux_canbus_steering)[0]:
-                s = 3
-                e = 0
-                ant = 1
-                weights = [0.4, 0.6, 1.]
-            else:
-                s = 1
-                e = 2
-                ant = 1
-                weights = [0.6, 1., 0.6]
-
-            a = aux_canbus_steering[i-s:i+e,1]
-            diff_s = np.average(a, weights=weights)
-
-            if aux_canbus_steering[i,1] > aux_canbus_steering[i-ant,1]:
+            if aux_canbus_steering[i,1] > 0:
                 #Left
                 steering = 1
             else:
@@ -449,10 +428,10 @@ class DataLoaderAReg(Dataset):
 
 
             # Strong turn left
-            if abs(diff_s) > 80 and steering == 1:
+            if abs(aux_canbus_steering[i,1]) > 80 and steering == 1:
                 labels = 2
             # Strong turn right
-            elif abs(diff_s) > 80 and steering == 0:
+            elif abs(aux_canbus_steering[i,1]) > 80 and steering == 0:
                 labels = 1
             # Straight
             else:

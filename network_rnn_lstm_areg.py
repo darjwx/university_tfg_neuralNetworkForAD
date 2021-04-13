@@ -65,12 +65,12 @@ std = (0.229, 0.224, 0.225)
 
 mean_sp = 19.2159
 std_sp = 3.0407
-mean_st0 = -0.6561
-std_st0 = 20.5480
-mean_st1 = -54.7190
-std_st1 = 174.4027
-mean_st2 = 23.4976
-std_st2 = 174.7414
+mean_st0 = -0.6281
+std_st0 = 20.1580
+mean_st1 = -167.8248
+std_st1 = 74.4673
+mean_st2 = 160.7079
+std_st2 = 66.5891
 
 composed = transforms.Compose([Rescale((225,400), areg=True),
                               ToTensor(areg=True),
