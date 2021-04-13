@@ -131,9 +131,9 @@ class ToTensor(object):
                 aux.append(image[i].transpose((2, 0, 1)))
 
             return {'image': torch.from_numpy(np.array(aux)),
-                    'speed': torch.from_numpy(np.array(speed)),
+                    'speed': torch.from_numpy(np.array(speed)).float(),
                     's_type': torch.from_numpy(np.array(st_type)),
-                    'steering': torch.from_numpy(np.array(steering))}
+                    'steering': torch.from_numpy(np.array(steering)).float()}
         else:
             image, label = sample['image'], sample['label']
 
