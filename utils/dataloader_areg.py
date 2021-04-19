@@ -415,9 +415,12 @@ class DataLoaderAReg(Dataset):
             }
         }
 
-        # Labels for each steering grade: high, medium and low
+        # Labels for steering: Strong turn left/right and straight
+        # Labels for speed: Moving and stop
+        aux_canbus_speed = self.can_bus['speed']
         aux_canbus_steering = self.can_bus['steering']
         self.steering_type = np.empty(np.shape(aux_canbus_steering)[0], dtype = object)
+        self.speed_type = np.empty(np.shape(aux_canbus_speed)[0], dtype = object)
         for i in range(np.shape(aux_canbus_steering)[0]):
             if aux_canbus_steering[i,1] > 0:
                 #Left
@@ -429,15 +432,24 @@ class DataLoaderAReg(Dataset):
 
             # Strong turn left
             if abs(aux_canbus_steering[i,1]) > 80 and steering == 1:
-                labels = 2
+                labels_st = 2
             # Strong turn right
             elif abs(aux_canbus_steering[i,1]) > 80 and steering == 0:
-                labels = 1
+                labels_st = 1
             # Straight
             else:
-                labels = 0
+                labels_st = 0
 
-            self.steering_type[i] = labels
+            self.steering_type[i] = labels_st
+
+            # Stop
+            if aux_canbus_speed[i,1] == 0:
+                labels_sp = 0
+            # In motion
+            else:
+                labels_sp = 1
+
+            self.speed_type[i] = labels_sp
 
         self.transform = transform
 
@@ -456,7 +468,8 @@ class DataLoaderAReg(Dataset):
         seq = self.seq_length[idx]
 
         id_s = 0
-        s_type = []
+        st_type = []
+        sp_type = []
         images = []
         speed = []
         steering = []
@@ -474,11 +487,12 @@ class DataLoaderAReg(Dataset):
 
             images.append(image)
 
-            s_type.append(self.steering_type[id_s+i])
+            sp_type.append(self.speed_type[id_s+i])
+            st_type.append(self.steering_type[id_s+i])
             speed.append(self.can_bus['speed'][id_s+i,1])
             steering.append(self.can_bus['steering'][id_s+i,1])
 
-        train = {'image': np.array(images), 'speed': speed, 's_type': s_type,  'steering': steering}
+        train = {'image': np.array(images), 'sp_type': sp_type, 'speed': speed, 'st_type': st_type,  'steering': steering}
 
         if self.transform:
             train = self.transform(train)
@@ -488,27 +502,32 @@ class DataLoaderAReg(Dataset):
     def get_seq_length(self):
         return self.seq_length
 
-    def create_video(self, name, preds_label, preds_steering, gt_steering, sensor = 'CAM_FRONT'):
+    def create_video(self, name, speed_labels_pred, steering_labels_pred, speed_reg_pred, steering_reg_pred, sensor = 'CAM_FRONT'):
         aux_canbus_speed = self.can_bus['speed']
         aux_canbus_steering = self.can_bus['steering']
         aux_list = self.sensors_labelled_data['images'][sensor]
 
-        classes = ['straight', 'strong right', 'strong left']
+        classes_speed = ['stop', 'in motion']
+        classes_steering = ['straight', 'strong right', 'strong left']
 
         fourcc = cv.VideoWriter_fourcc(*'MPEG')
         video = cv.VideoWriter(name, fourcc, 10, (1100, 450))
 
         print('Building video')
-        for i in tqdm(range(preds_label.shape[0])):
+        for i in tqdm(range(speed_labels_pred.shape[0])):
             black = np.zeros((450, 300, 3), np.uint8)
             black = cv.putText(black, 'GT labels', (10, 30), cv.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1, cv.LINE_AA)
-            black = cv.putText(black, classes[self.steering_type[i]], (10, 60), cv.FONT_HERSHEY_PLAIN, 1, (255,255,255), 1, cv.LINE_AA)
-            black = cv.putText(black, 'Pred labels', (10, 90), cv.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1, cv.LINE_AA)
-            black = cv.putText(black, classes[int(preds_label[i])], (10, 120), cv.FONT_HERSHEY_PLAIN, 1, (255,255,255), 1, cv.LINE_AA)
-            black = cv.putText(black, 'GT regression', (10, 150), cv.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1, cv.LINE_AA)
-            black = cv.putText(black, str(gt_steering[i]), (10, 180), cv.FONT_HERSHEY_PLAIN, 1, (255,255,255), 1, cv.LINE_AA)
-            black = cv.putText(black, 'Pred regression', (10, 210), cv.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1, cv.LINE_AA)
-            black = cv.putText(black, str(preds_steering[i]), (10, 240), cv.FONT_HERSHEY_PLAIN, 1, (255,255,255), 1, cv.LINE_AA)
+            black = cv.putText(black, classes_speed[self.speed_type[i]], (10, 50), cv.FONT_HERSHEY_PLAIN, 1, (255,255,255), 1, cv.LINE_AA)
+            black = cv.putText(black, classes_steering[self.steering_type[i]], (10, 70), cv.FONT_HERSHEY_PLAIN, 1, (255,255,255), 1, cv.LINE_AA)
+            black = cv.putText(black, 'Pred labels', (10, 100), cv.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1, cv.LINE_AA)
+            black = cv.putText(black, classes_speed[int(speed_labels_pred[i])], (10, 120), cv.FONT_HERSHEY_PLAIN, 1, (255,255,255), 1, cv.LINE_AA)
+            black = cv.putText(black, classes_steering[int(steering_labels_pred[i])], (10, 140), cv.FONT_HERSHEY_PLAIN, 1, (255,255,255), 1, cv.LINE_AA)
+            black = cv.putText(black, 'GT regression', (10, 170), cv.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1, cv.LINE_AA)
+            black = cv.putText(black, str(aux_canbus_speed[i,1]), (10, 190), cv.FONT_HERSHEY_PLAIN, 1, (255,255,255), 1, cv.LINE_AA)
+            black = cv.putText(black, str(aux_canbus_steering[i,1]), (10, 210), cv.FONT_HERSHEY_PLAIN, 1, (255,255,255), 1, cv.LINE_AA)
+            black = cv.putText(black, 'Pred regression', (10, 240), cv.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1, cv.LINE_AA)
+            black = cv.putText(black, str(speed_reg_pred[i]), (10, 260), cv.FONT_HERSHEY_PLAIN, 1, (255,255,255), 1, cv.LINE_AA)
+            black = cv.putText(black, str(steering_reg_pred[i]), (10, 280), cv.FONT_HERSHEY_PLAIN, 1, (255,255,255), 1, cv.LINE_AA)
 
             img = cv.imread(aux_list[i])
             img = img.astype(np.uint8)

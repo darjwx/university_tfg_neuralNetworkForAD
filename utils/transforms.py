@@ -57,12 +57,12 @@ class Rescale(object):
 
         elif self.areg:
             res_img = []
-            image, speed, st_type, steering = sample['image'], sample['speed'], sample['s_type'], sample['steering']
+            image, sp_type, speed, st_type, steering = sample['image'], sample['sp_type'], sample['speed'], sample['st_type'], sample['steering']
 
             for i in range(np.shape(image)[0]):
                 res_img.append(cv.resize(image[i], (w,h)))
 
-            return {'image': res_img, 'speed': speed, 's_type': st_type, 'steering': steering}
+            return {'image': res_img, 'sp_type': sp_type, 'speed': speed, 'st_type': st_type, 'steering': steering}
 
         else:
             image, label = sample['image'], sample['label']
@@ -122,7 +122,7 @@ class ToTensor(object):
 
         elif self.areg:
             aux = []
-            image, speed, st_type, steering = sample['image'], sample['speed'], sample['s_type'], sample['steering']
+            image, sp_type, speed, st_type, steering = sample['image'], sample['sp_type'], sample['speed'], sample['st_type'], sample['steering']
 
             # OpenCV image: H x W x C
             # torch image: C x H x W
@@ -131,8 +131,9 @@ class ToTensor(object):
                 aux.append(image[i].transpose((2, 0, 1)))
 
             return {'image': torch.from_numpy(np.array(aux)),
+                    'sp_type': torch.from_numpy(np.array(sp_type)),
                     'speed': torch.from_numpy(np.array(speed)).float(),
-                    's_type': torch.from_numpy(np.array(st_type)),
+                    'st_type': torch.from_numpy(np.array(st_type)),
                     'steering': torch.from_numpy(np.array(steering)).float()}
         else:
             image, label = sample['image'], sample['label']
@@ -213,13 +214,15 @@ class Normalize(object):
                     'can_bus': canbus}
 
         elif self.areg:
-            image, speed, st_type, steering = sample['image'], sample['speed'], sample['s_type'], sample['steering']
+            image, sp_type, speed, st_type, steering = sample['image'], sample['sp_type'], sample['speed'], sample['st_type'], sample['steering']
             for i in range(image.size(0)):
                 image[i] = norm(image[i])
 
-            # Normalize numerical values
+            # Normalize per speed class
             for i in range(np.shape(speed)[0]):
-                speed[i] = (speed[i] - self.mean_sp) / self.std_sp
+                if sp_type[i] == 1:
+                    speed[i] = (speed[i] - self.mean_sp) / self.std_sp
+
 
             # Normalize per steering class
             for i in range(np.shape(steering)[0]):
@@ -230,7 +233,7 @@ class Normalize(object):
                 else:
                     steering[i] = (steering[i] - self.mean2) / self.std2
 
-            return {'image': image, 'speed': speed, 's_type': st_type, 'steering': steering}
+            return {'image': image, 'sp_type': sp_type, 'speed': speed, 'st_type': st_type, 'steering': steering}
 
         else:
             image, label = sample['image'], sample['label']
