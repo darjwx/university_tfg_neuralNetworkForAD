@@ -47,6 +47,8 @@ parser.add_argument('--predf', type=str_to_bool, default=False, help='Wheter to 
 parser.add_argument('--route', type=str, default='/data/sets/nuscenes/', help='Route where the NuScenes dataset is located')
 parser.add_argument('--res', nargs=2, type=int, default=[225,400], help='Images resolution')
 parser.add_argument('--tb', type=str_to_bool, default=False, help='Wheter to upload data to TensorBoard')
+parser.add_argument('--save', type=str_to_bool, default=False, help='Wheter to save model\'s sate dict')
+parser.add_argument('--savepath', type=str, default='model.pth', help='Location where the model is going to be saved')
 
 args = parser.parse_args()
 
@@ -261,6 +263,10 @@ for epoch in range(num_epochs):
                 update_scalar_tb('Val loss: Steering regression', loss4, epoch * len(valloader) + i)
 
 print('Finished training')
+
+# Save model
+if args.save:
+    torch.save(model.state_dict(), args.savepath)
 
 print('Validating with %d groups of connected images' % (len(dataset_val)))
 
