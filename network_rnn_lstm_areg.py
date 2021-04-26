@@ -43,6 +43,7 @@ parser.add_argument('--lw', type=int, default=1, help='Loss weights')
 parser.add_argument('--video_name', type=str, default='val_info_custom.avi', help='Output video name')
 parser.add_argument('--layers', type=int, default=1, help='Number of LSTM layers')
 parser.add_argument('--video', type=str_to_bool, default=False, help='Wheter to build a video')
+parser.add_argument('--predf', type=str_to_bool, default=False, help='Wheter to use predictions to filter the regression targets')
 
 args = parser.parse_args()
 
@@ -166,6 +167,9 @@ for epoch in range(num_epochs):
 
         type_sp, out1, type_st, out2 = model(images)
 
+        _, predicted_sp = torch.max(type_sp.data, 1)
+        _, predicted_st = torch.max(type_st.data, 1)
+
         loss1 = criterion_class(type_sp, speed_type)
         loss3 = criterion_class(type_st, steering_type)
 
@@ -176,9 +180,14 @@ for epoch in range(num_epochs):
         # [1, *, 1]
         # [1, 1, *]
         idx_sp = torch.arange(out1.size(0))
-        loss2 = criterion_reg(out1[idx_sp,speed_type], speed)
         idx_st = torch.arange(out2.size(0))
-        loss4 = criterion_reg(out2[idx_st,steering_type], steering)
+
+        if args.predf:
+            loss2 = criterion_reg(out1[idx_sp,predicted_sp], speed)
+            loss4 = criterion_reg(out2[idx_st,predicted_st], steering)
+        else:
+            loss2 = criterion_reg(out1[idx_sp,speed_type], speed)
+            loss4 = criterion_reg(out2[idx_st,steering_type], steering)
 
         loss = lw*loss1 + lw*loss2 + lw*loss3 + lw*loss4
 
@@ -224,13 +233,22 @@ for epoch in range(num_epochs):
 
 
             type_sp, out1, type_st, out2 = model(images)
+
+            _, predicted_sp = torch.max(type_sp.data, 1)
+            _, predicted_st = torch.max(type_st.data, 1)
+
             loss1 = criterion_class(type_sp, speed_type)
             loss3 = criterion_class(type_st, steering_type)
 
             idx_sp = torch.arange(out1.size(0))
-            loss2 = criterion_reg(out1[idx_sp,speed_type], speed)
             idx_st = torch.arange(out2.size(0))
-            loss4 = criterion_reg(out2[idx_st,steering_type], steering)
+
+            if args.predf:
+                loss2 = criterion_reg(out1[idx_sp,predicted_sp], speed)
+                loss4 = criterion_reg(out2[idx_st,predicted_st], steering)
+            else:
+                loss2 = criterion_reg(out1[idx_sp,speed_type], speed)
+                loss4 = criterion_reg(out2[idx_st,steering_type], steering)
 
             update_scalar_tb('Val loss: Speed classification', loss1, epoch * len(valloader) + i)
             update_scalar_tb('Val loss: Speed regression', loss2, epoch * len(valloader) + i)
@@ -285,29 +303,45 @@ with torch.no_grad():
         idx_sp = torch.arange(out1.size(0))
         idx_st = torch.arange(out2.size(0))
 
+        if args.predf:
+            speed_reg_pred = torch.cat((speed_reg_pred, out1[idx_sp,predicted_sp]), dim=0)
+            steering_reg_pred = torch.cat((steering_reg_pred, out2[idx_st,predicted_st]), dim=0)
+        else:
+            speed_reg_pred = torch.cat((speed_reg_pred, out1[idx_sp,speed_type]), dim=0)
+            steering_reg_pred = torch.cat((steering_reg_pred, out2[idx_st,steering_type]), dim=0)
+
         speed_labels_gt = torch.cat((speed_labels_gt, speed_type), dim=0)
         steering_labels_gt = torch.cat((steering_labels_gt, steering_type), dim=0)
         speed_reg_gt = torch.cat((speed_reg_gt, speed), dim=0)
         steering_reg_gt = torch.cat((steering_reg_gt, steering), dim=0)
         speed_labels_pred = torch.cat((speed_labels_pred, predicted_sp), dim=0)
         steering_labels_pred = torch.cat((steering_labels_pred, predicted_st), dim=0)
-        speed_reg_pred = torch.cat((speed_reg_pred, out1[idx_sp,speed_type]), dim=0)
-        steering_reg_pred = torch.cat((steering_reg_pred, out2[idx_st,steering_type]), dim=0)
 
 # Unnormalize
+if args.predf:
+    aux_speed = speed_labels_pred
+    aux_steering = steering_labels_pred
+else:
+    aux_speed = speed_labels_gt
+    aux_steering = steering_labels_gt
+
 for i in range(speed_reg_gt.shape[0]):
     if speed_labels_gt[i] == 1:
         speed_reg_gt[i] = speed_reg_gt[i] * std_sp + mean_sp
+    if aux_speed[i] == 1:
         speed_reg_pred[i] = speed_reg_pred[i] * std_sp + mean_sp
 
     if steering_labels_gt[i] == 0:
         steering_reg_gt[i] = steering_reg_gt[i] * std_st0 + mean_st0
-        steering_reg_pred[i] = steering_reg_pred[i] * std_st0 + mean_st0
     elif steering_labels_gt[i] == 1:
         steering_reg_gt[i] = steering_reg_gt[i] * std_st1 + mean_st1
-        steering_reg_pred[i] = steering_reg_pred[i] * std_st1 + mean_st1
     else:
         steering_reg_gt[i] = steering_reg_gt[i] * std_st2 + mean_st2
+    if aux_steering[i] == 0:
+        steering_reg_pred[i] = steering_reg_pred[i] * std_st0 + mean_st0
+    elif aux_steering[i] == 1:
+        steering_reg_pred[i] = steering_reg_pred[i] * std_st1 + mean_st1
+    else:
         steering_reg_pred[i] = steering_reg_pred[i] * std_st2 + mean_st2
 
 if args.video:
