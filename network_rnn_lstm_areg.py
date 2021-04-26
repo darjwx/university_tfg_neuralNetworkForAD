@@ -44,6 +44,9 @@ parser.add_argument('--video_name', type=str, default='val_info_custom.avi', hel
 parser.add_argument('--layers', type=int, default=1, help='Number of LSTM layers')
 parser.add_argument('--video', type=str_to_bool, default=False, help='Wheter to build a video')
 parser.add_argument('--predf', type=str_to_bool, default=False, help='Wheter to use predictions to filter the regression targets')
+parser.add_argument('--route', type=str, default='/data/sets/nuscenes/', help='Route where the NuScenes dataset is located')
+parser.add_argument('--res', nargs=2, type=int, default=[225,400], help='Images resolution')
+parser.add_argument('--tb', type=str_to_bool, default=False, help='Wheter to upload data to TensorBoard')
 
 args = parser.parse_args()
 
@@ -72,7 +75,7 @@ std_st1 = 74.4673
 mean_st2 = 160.7079
 std_st2 = 66.5891
 
-composed = transforms.Compose([Rescale((225,400), areg=True),
+composed = transforms.Compose([Rescale(tuple(args.res), areg=True),
                               ToTensor(areg=True),
                               Normalize(mean, std, mean_sp, std_sp, mean_st0, std_st0, mean_st1, std_st1, mean_st2, std_st2, areg=True)])
 
@@ -134,7 +137,7 @@ criterion_class = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
 
 # Custom Dataloader for NuScenes
-HOME_ROUTE = '/media/darjwx/ssd_data/data/sets/nuscenes/'
+HOME_ROUTE = args.route
 dataset_train = DataLoaderAReg(HOME_ROUTE, 'train', 1111, 850, composed)
 dataset_val = DataLoaderAReg(HOME_ROUTE, 'val', 1111, 850, composed)
 
@@ -191,10 +194,11 @@ for epoch in range(num_epochs):
 
         loss = lw*loss1 + lw*loss2 + lw*loss3 + lw*loss4
 
-        update_scalar_tb('Train loss: Speed classification', loss1, epoch * len(trainloader) + i)
-        update_scalar_tb('Train loss: Speed regression', loss2, epoch * len(trainloader) + i)
-        update_scalar_tb('Train loss: Steering classification', loss3, epoch * len(trainloader) + i)
-        update_scalar_tb('Train loss: Steering regression', loss4, epoch * len(trainloader) + i)
+        if args.tb:
+            update_scalar_tb('Train loss: Speed classification', loss1, epoch * len(trainloader) + i)
+            update_scalar_tb('Train loss: Speed regression', loss2, epoch * len(trainloader) + i)
+            update_scalar_tb('Train loss: Steering classification', loss3, epoch * len(trainloader) + i)
+            update_scalar_tb('Train loss: Steering regression', loss4, epoch * len(trainloader) + i)
 
         loss.backward()
         optimizer.step()
@@ -250,10 +254,11 @@ for epoch in range(num_epochs):
                 loss2 = criterion_reg(out1[idx_sp,speed_type], speed)
                 loss4 = criterion_reg(out2[idx_st,steering_type], steering)
 
-            update_scalar_tb('Val loss: Speed classification', loss1, epoch * len(valloader) + i)
-            update_scalar_tb('Val loss: Speed regression', loss2, epoch * len(valloader) + i)
-            update_scalar_tb('Val loss: Steering classification', loss3, epoch * len(valloader) + i)
-            update_scalar_tb('Val loss: Steering regression', loss4, epoch * len(valloader) + i)
+            if args.tb:
+                update_scalar_tb('Val loss: Speed classification', loss1, epoch * len(valloader) + i)
+                update_scalar_tb('Val loss: Speed regression', loss2, epoch * len(valloader) + i)
+                update_scalar_tb('Val loss: Steering classification', loss3, epoch * len(valloader) + i)
+                update_scalar_tb('Val loss: Steering regression', loss4, epoch * len(valloader) + i)
 
 print('Finished training')
 
