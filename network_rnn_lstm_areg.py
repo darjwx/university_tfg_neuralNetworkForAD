@@ -49,6 +49,8 @@ parser.add_argument('--res', nargs=2, type=int, default=[225,400], help='Images 
 parser.add_argument('--tb', type=str_to_bool, default=False, help='Wheter to upload data to TensorBoard')
 parser.add_argument('--save', type=str_to_bool, default=False, help='Wheter to save model\'s sate dict')
 parser.add_argument('--savepath', type=str, default='model.pth', help='Location where the model is going to be saved')
+parser.add_argument('--weights_sp', nargs=2, type=float, default=[1., 1.], help='Loss weights for speed')
+parser.add_argument('--weights_st', nargs=3, type=float, default=[1., 1., 1.], help='Loss weights for steering')
 
 args = parser.parse_args()
 
@@ -134,8 +136,12 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = AidedRegression(hidden_size, num_layers, out_sp, out_st)
 model = model.to(device)
 
+weights_sp = torch.from_numpy(np.array(args.weights_sp)).float().to(device)
+weights_st = torch.from_numpy(np.array(args.weights_st)).float().to(device)
+
+criterion_class_sp = nn.CrossEntropyLoss(weight=weights_sp)
+criterion_class_st = nn.CrossEntropyLoss(weight=weights_st)
 criterion_reg = nn.L1Loss()
-criterion_class = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
 
 # Custom Dataloader for NuScenes
@@ -175,8 +181,8 @@ for epoch in range(num_epochs):
         _, predicted_sp = torch.max(type_sp.data, 1)
         _, predicted_st = torch.max(type_st.data, 1)
 
-        loss1 = criterion_class(type_sp, speed_type)
-        loss3 = criterion_class(type_st, steering_type)
+        loss1 = criterion_class_sp(type_sp, speed_type)
+        loss3 = criterion_class_st(type_st, steering_type)
 
         # List slicing to calculate the loss with the correct values
         # Rows index: idx -- Columns index: speed_type/steering_type
@@ -243,8 +249,8 @@ for epoch in range(num_epochs):
             _, predicted_sp = torch.max(type_sp.data, 1)
             _, predicted_st = torch.max(type_st.data, 1)
 
-            loss1 = criterion_class(type_sp, speed_type)
-            loss3 = criterion_class(type_st, steering_type)
+            loss1 = criterion_class_sp(type_sp, speed_type)
+            loss3 = criterion_class_st(type_st, steering_type)
 
             idx_sp = torch.arange(out1.size(0))
             idx_st = torch.arange(out2.size(0))
