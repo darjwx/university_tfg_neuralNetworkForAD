@@ -238,7 +238,7 @@ error2 = mean_squared_error(all_preds_2.cpu(), all_labels_2.cpu())
 print('Mean squared error')
 print('Speed: %.4f -- Steering %.4f' %(error1, error2))
 
-draw_reg_lineplot(all_labels_1.cpu(), all_preds_1.cpu())
-draw_reg_lineplot(all_labels_2.cpu(), all_preds_2.cpu())
+draw_reg_lineplot(all_labels_1.cpu(), all_preds_1.cpu(), 'speed_reg_graf.png')
+draw_reg_lineplot(all_labels_2.cpu(), all_preds_2.cpu(), 'steering_reg_graf.png')
 
 show_predicted_data(valloader, None, None, all_preds_1.cpu(), all_preds_2.cpu(), mean, std, reg=True)

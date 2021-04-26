@@ -166,7 +166,7 @@ def draw_lineplot(labels, preds, classes):
     # Draw plot
     sns.lineplot(x='time', y='commands', hue='type', data=df)
 
-def draw_reg_lineplot(labels, preds):
+def draw_reg_lineplot(labels, preds, file, show=False):
 
     type1 = np.empty(np.shape(labels)[0], dtype=np.dtype('<U122'))
     type2 = np.empty(np.shape(labels)[0], dtype=np.dtype('<U122'))
@@ -194,9 +194,9 @@ def draw_reg_lineplot(labels, preds):
 
     # Draw plot
     sns.lineplot(x='time', y='commands', hue='type', data=df)
-    plt.show()
-
-
+    plt.savefig(file, dpi=100)
+    if show:
+        plt.show()
 
 def update_scalar_tb(tag, scalar, x):
     """

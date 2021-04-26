@@ -362,7 +362,7 @@ print('Speed: %.4f -- Steering %.4f' %(max1, max2))
 print('Min error')
 print('Speed: %.4f -- Steering %.4f' %(min1, min2))
 
-draw_reg_lineplot(speed_reg_gt.cpu(), speed_reg_pred.cpu())
-draw_reg_lineplot(steering_reg_gt.cpu(), steering_reg_pred.cpu())
+draw_reg_lineplot(speed_reg_gt.cpu(), speed_reg_pred.cpu(), 'speed_areg_graf.png')
+draw_reg_lineplot(steering_reg_gt.cpu(), steering_reg_pred.cpu(), 'steering_areg_graf.png')
 
 #show_predicted_data(valloader, None, None, speed_reg_pred.cpu(), steering_reg_pred.cpu(), mean, std, reg=True)
