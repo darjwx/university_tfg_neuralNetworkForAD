@@ -40,18 +40,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--epochs', type=int, default=15, help='Number of epochs')
 parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
 parser.add_argument('--lw', type=int, default=1, help='Loss weights')
-parser.add_argument('--video_name', type=str, default='val_info_custom.avi', help='Output video name')
 parser.add_argument('--layers', type=int, default=1, help='Number of LSTM layers')
-parser.add_argument('--video', type=str_to_bool, default=False, help='Wheter to build a video')
 parser.add_argument('--predf', type=str_to_bool, default=False, help='Wheter to use predictions to filter the regression targets')
 parser.add_argument('--route', type=str, default='/data/sets/nuscenes/', help='Route where the NuScenes dataset is located')
 parser.add_argument('--res', nargs=2, type=int, default=[225,400], help='Images resolution')
 parser.add_argument('--tb', type=str_to_bool, default=False, help='Wheter to upload data to TensorBoard')
-parser.add_argument('--save', type=str_to_bool, default=False, help='Wheter to save model\'s sate dict')
-parser.add_argument('--savepath', type=str, default='model.pth', help='Location where the model is going to be saved')
 parser.add_argument('--weights_sp', nargs=2, type=float, default=[1., 1.], help='Loss weights for speed')
 parser.add_argument('--weights_st', nargs=3, type=float, default=[1., 1., 1.], help='Loss weights for steering')
+parser.add_argument('--save', type=str, default='None', help='Location where the model is going to be saved')
 parser.add_argument('--load', type=str, default='None', help='Path to the model to be loaded')
+parser.add_argument('--video', type=str, default='None', help='Path for the output video')
 
 args = parser.parse_args()
 
@@ -64,7 +62,6 @@ learning_rate = args.lr
 out_sp = 2
 out_st = 3
 lw = args.lw
-video = args.video_name
 
 # Transforms
 # Original resolution / 4 (900, 1600) (h, w)
@@ -276,8 +273,8 @@ else:
 print('Finished training')
 
 # Save model
-if args.save:
-    torch.save(model.state_dict(), args.savepath)
+if args.save != 'None':
+    torch.save(model.state_dict(), args.save)
 
 print('Validating with %d groups of connected images' % (len(dataset_val)))
 
@@ -366,8 +363,8 @@ for i in range(speed_reg_gt.shape[0]):
     else:
         steering_reg_pred[i] = steering_reg_pred[i] * std_st2 + mean_st2
 
-if args.video:
-    dataset_val.create_video(video, speed_labels_pred.cpu(), steering_labels_pred.cpu(), speed_reg_pred.cpu(), steering_reg_pred.cpu())
+if args.video != 'None':
+    dataset_val.create_video(args.video, speed_labels_pred.cpu(), steering_labels_pred.cpu(), speed_reg_pred.cpu(), steering_reg_pred.cpu())
 
 # Mean squared error
 error1, max1, min1 = mean_squared_error(speed_reg_pred.cpu(), speed_reg_gt.cpu())
