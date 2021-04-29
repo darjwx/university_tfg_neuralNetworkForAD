@@ -51,6 +51,7 @@ parser.add_argument('--save', type=str_to_bool, default=False, help='Wheter to s
 parser.add_argument('--savepath', type=str, default='model.pth', help='Location where the model is going to be saved')
 parser.add_argument('--weights_sp', nargs=2, type=float, default=[1., 1.], help='Loss weights for speed')
 parser.add_argument('--weights_st', nargs=3, type=float, default=[1., 1., 1.], help='Loss weights for steering')
+parser.add_argument('--load', type=str, default='None', help='Path to the model to be loaded')
 
 args = parser.parse_args()
 
@@ -154,83 +155,20 @@ valloader = DataLoader(dataset_val, batch_size, shuffle=False)
 
 print('Training with %d groups of connected images' % (len(dataset_train)))
 
-for epoch in range(num_epochs):
-    rloss1 = 0.0
-    rloss2 = 0.0
-    rloss3 = 0.0
-    rloss4 = 0.0
+if args.load != 'None':
+    print('Loading model from %s' % (args.load))
+    model.load_state_dict(torch.load(args.load))
+else:
+    for epoch in range(num_epochs):
+        rloss1 = 0.0
+        rloss2 = 0.0
+        rloss3 = 0.0
+        rloss4 = 0.0
 
-    model.train()
-    for i, data in enumerate(trainloader):
+        model.train()
+        for i, data in enumerate(trainloader):
 
-        model.zero_grad()
-        images = data['image']
-        speed_type = data['sp_type']
-        speed = data['speed']
-        steering_type = data['st_type']
-        steering = data['steering']
-
-        images = images.to(device)
-        speed_type = speed_type.to(device).squeeze(0)
-        speed = speed.to(device).squeeze(0)
-        steering_type = steering_type.to(device).squeeze(0)
-        steering = steering.to(device).squeeze(0)
-
-        type_sp, out1, type_st, out2 = model(images)
-
-        _, predicted_sp = torch.max(type_sp.data, 1)
-        _, predicted_st = torch.max(type_st.data, 1)
-
-        loss1 = criterion_class_sp(type_sp, speed_type)
-        loss3 = criterion_class_st(type_st, steering_type)
-
-        # List slicing to calculate the loss with the correct values
-        # Rows index: idx -- Columns index: speed_type/steering_type
-        # [*, 1, 1]
-        # [1, *, 1]
-        # [1, *, 1]
-        # [1, 1, *]
-        idx_sp = torch.arange(out1.size(0))
-        idx_st = torch.arange(out2.size(0))
-
-        if args.predf:
-            loss2 = criterion_reg(out1[idx_sp,predicted_sp], speed)
-            loss4 = criterion_reg(out2[idx_st,predicted_st], steering)
-        else:
-            loss2 = criterion_reg(out1[idx_sp,speed_type], speed)
-            loss4 = criterion_reg(out2[idx_st,steering_type], steering)
-
-        loss = lw*loss1 + lw*loss2 + lw*loss3 + lw*loss4
-
-        if args.tb:
-            update_scalar_tb('Train loss: Speed classification', loss1, epoch * len(trainloader) + i)
-            update_scalar_tb('Train loss: Speed regression', loss2, epoch * len(trainloader) + i)
-            update_scalar_tb('Train loss: Steering classification', loss3, epoch * len(trainloader) + i)
-            update_scalar_tb('Train loss: Steering regression', loss4, epoch * len(trainloader) + i)
-
-        loss.backward()
-        optimizer.step()
-
-        rloss1 += loss1.item()
-        rloss2 += loss2.item()
-        rloss3 += loss3.item()
-        rloss4 += loss4.item()
-
-        # print every 100 groups
-        if i % 100 == 99:
-            print('[%d, %5d] Speed class loss: %.3f -- Speed reg loss: %.3f -- Steering class loss %.3f -- Steering reg loss %.3f'
-                 % (epoch + 1, i + 1, rloss1 / 100, rloss2 / 100, rloss3 / 100, rloss4 / 100))
-
-            rloss1 = 0.0
-            rloss2 = 0.0
-            rloss3 = 0.0
-            rloss4 = 0.0
-
-    # Validation loss
-    model.eval()
-
-    with torch.no_grad():
-        for i, data in enumerate(valloader):
+            model.zero_grad()
             images = data['image']
             speed_type = data['sp_type']
             speed = data['speed']
@@ -243,7 +181,6 @@ for epoch in range(num_epochs):
             steering_type = steering_type.to(device).squeeze(0)
             steering = steering.to(device).squeeze(0)
 
-
             type_sp, out1, type_st, out2 = model(images)
 
             _, predicted_sp = torch.max(type_sp.data, 1)
@@ -252,6 +189,12 @@ for epoch in range(num_epochs):
             loss1 = criterion_class_sp(type_sp, speed_type)
             loss3 = criterion_class_st(type_st, steering_type)
 
+            # List slicing to calculate the loss with the correct values
+            # Rows index: idx -- Columns index: speed_type/steering_type
+            # [*, 1, 1]
+            # [1, *, 1]
+            # [1, *, 1]
+            # [1, 1, *]
             idx_sp = torch.arange(out1.size(0))
             idx_st = torch.arange(out2.size(0))
 
@@ -262,11 +205,73 @@ for epoch in range(num_epochs):
                 loss2 = criterion_reg(out1[idx_sp,speed_type], speed)
                 loss4 = criterion_reg(out2[idx_st,steering_type], steering)
 
+            loss = lw*loss1 + lw*loss2 + lw*loss3 + lw*loss4
+
             if args.tb:
-                update_scalar_tb('Val loss: Speed classification', loss1, epoch * len(valloader) + i)
-                update_scalar_tb('Val loss: Speed regression', loss2, epoch * len(valloader) + i)
-                update_scalar_tb('Val loss: Steering classification', loss3, epoch * len(valloader) + i)
-                update_scalar_tb('Val loss: Steering regression', loss4, epoch * len(valloader) + i)
+                update_scalar_tb('Train loss: Speed classification', loss1, epoch * len(trainloader) + i)
+                update_scalar_tb('Train loss: Speed regression', loss2, epoch * len(trainloader) + i)
+                update_scalar_tb('Train loss: Steering classification', loss3, epoch * len(trainloader) + i)
+                update_scalar_tb('Train loss: Steering regression', loss4, epoch * len(trainloader) + i)
+
+            loss.backward()
+            optimizer.step()
+
+            rloss1 += loss1.item()
+            rloss2 += loss2.item()
+            rloss3 += loss3.item()
+            rloss4 += loss4.item()
+
+            # print every 100 groups
+            if i % 100 == 99:
+                print('[%d, %5d] Speed class loss: %.3f -- Speed reg loss: %.3f -- Steering class loss %.3f -- Steering reg loss %.3f'
+                     % (epoch + 1, i + 1, rloss1 / 100, rloss2 / 100, rloss3 / 100, rloss4 / 100))
+
+                rloss1 = 0.0
+                rloss2 = 0.0
+                rloss3 = 0.0
+                rloss4 = 0.0
+
+        # Validation loss
+        model.eval()
+
+        with torch.no_grad():
+            for i, data in enumerate(valloader):
+                images = data['image']
+                speed_type = data['sp_type']
+                speed = data['speed']
+                steering_type = data['st_type']
+                steering = data['steering']
+
+                images = images.to(device)
+                speed_type = speed_type.to(device).squeeze(0)
+                speed = speed.to(device).squeeze(0)
+                steering_type = steering_type.to(device).squeeze(0)
+                steering = steering.to(device).squeeze(0)
+
+
+                type_sp, out1, type_st, out2 = model(images)
+
+                _, predicted_sp = torch.max(type_sp.data, 1)
+                _, predicted_st = torch.max(type_st.data, 1)
+
+                loss1 = criterion_class_sp(type_sp, speed_type)
+                loss3 = criterion_class_st(type_st, steering_type)
+
+                idx_sp = torch.arange(out1.size(0))
+                idx_st = torch.arange(out2.size(0))
+
+                if args.predf:
+                    loss2 = criterion_reg(out1[idx_sp,predicted_sp], speed)
+                    loss4 = criterion_reg(out2[idx_st,predicted_st], steering)
+                else:
+                    loss2 = criterion_reg(out1[idx_sp,speed_type], speed)
+                    loss4 = criterion_reg(out2[idx_st,steering_type], steering)
+
+                if args.tb:
+                    update_scalar_tb('Val loss: Speed classification', loss1, epoch * len(valloader) + i)
+                    update_scalar_tb('Val loss: Speed regression', loss2, epoch * len(valloader) + i)
+                    update_scalar_tb('Val loss: Steering classification', loss3, epoch * len(valloader) + i)
+                    update_scalar_tb('Val loss: Steering regression', loss4, epoch * len(valloader) + i)
 
 print('Finished training')
 
