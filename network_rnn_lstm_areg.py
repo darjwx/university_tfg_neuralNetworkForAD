@@ -38,6 +38,7 @@ def str_to_bool(arg):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epochs', type=int, default=15, help='Number of epochs')
+parser.add_argument('--hidden', type=int, default=128, help='LSTM hidden size')
 parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
 parser.add_argument('--lw', type=int, default=1, help='Loss weights')
 parser.add_argument('--layers', type=int, default=1, help='Number of LSTM layers')
@@ -55,7 +56,7 @@ args = parser.parse_args()
 
 # Parameters
 num_layers = args.layers
-hidden_size = 128
+hidden_size = args.hidden
 num_epochs = args.epochs
 batch_size = 1
 learning_rate = args.lr
