@@ -17,8 +17,6 @@ sns.set_theme(style='darkgrid', palette='pastel')
 
 # TensorBoard
 from torch.utils.tensorboard import SummaryWriter
-# Change the route when testing different models
-writer = SummaryWriter('runs/')
 
 
 def get_metrics(labels_true, labels_pred, num_classes, classes):
@@ -198,18 +196,20 @@ def draw_reg_lineplot(labels, preds, file, show=False):
     if show:
         plt.show()
 
-def update_scalar_tb(tag, scalar, x):
+def update_scalar_tb(tag, scalar, x, route):
     """
     Writes a scalar value to TensorBoard
     :param tag: Name of the graph.
     :param scalar: Scalar to write.
     :param x: X axis.
+    :param route: logs route.
     """
 
+    writer = SummaryWriter(route)
     writer.add_scalar(tag, scalar, x)
     writer.close()
 
-def pr_curve_tb(num_classes, labels_1, labels_2, preds_1, preds_2):
+def pr_curve_tb(num_classes, labels_1, labels_2, preds_1, preds_2, route):
     """
     Writes a per class precision-recall curve to TensorBoard.
     :param num_classes: Number of classes.
@@ -217,8 +217,9 @@ def pr_curve_tb(num_classes, labels_1, labels_2, preds_1, preds_2):
     :param labels_2: List of labels 2.
     :param preds_1: List of predictions 1.
     :param preds_2: List of predictions 2.
+    :param route: logs route.
     """
-
+    writer = SummaryWriter(route)
     for i in range(num_classes):
         labels_i_1 = labels_1 == i
         labels_i_2 = labels_2 == i
@@ -227,13 +228,15 @@ def pr_curve_tb(num_classes, labels_1, labels_2, preds_1, preds_2):
         writer.add_pr_curve('Precision-Recall direction' + str(i), labels_i_2, preds_2[:,i], global_step=0)
         writer.close()
 
-def visualize_model(net, images):
+def visualize_model(net, images, route):
     """
     Visualise the model in TensorBoard.
     :param net: Neural network model.
     :param images: Input of the model.
+    :param route: logs route.
     """
 
+    writer = SummaryWriter(route)
     writer.add_graph(net, images)
     writer.close()
 

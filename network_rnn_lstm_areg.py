@@ -45,9 +45,9 @@ parser.add_argument('--layers', type=int, default=1, help='Number of LSTM layers
 parser.add_argument('--predf', type=str_to_bool, default=False, help='Wheter to use predictions to filter the regression targets')
 parser.add_argument('--route', type=str, default='/data/sets/nuscenes/', help='Route where the NuScenes dataset is located')
 parser.add_argument('--res', nargs=2, type=int, default=[225,400], help='Images resolution')
-parser.add_argument('--tb', type=str_to_bool, default=False, help='Wheter to upload data to TensorBoard')
 parser.add_argument('--weights_sp', nargs=2, type=float, default=[1., 1.], help='Loss weights for speed')
 parser.add_argument('--weights_st', nargs=3, type=float, default=[1., 1., 1.], help='Loss weights for steering')
+parser.add_argument('--tb', type=str, default='None', help='Path for the TensorBoard logs')
 parser.add_argument('--save', type=str, default='None', help='Location where the model is going to be saved')
 parser.add_argument('--load', type=str, default='None', help='Path to the model to be loaded')
 parser.add_argument('--video', type=str, default='None', help='Path for the output video')
@@ -205,11 +205,11 @@ else:
 
             loss = lw*loss1 + lw*loss2 + lw*loss3 + lw*loss4
 
-            if args.tb:
-                update_scalar_tb('Train loss: Speed classification', loss1, epoch * len(trainloader) + i)
-                update_scalar_tb('Train loss: Speed regression', loss2, epoch * len(trainloader) + i)
-                update_scalar_tb('Train loss: Steering classification', loss3, epoch * len(trainloader) + i)
-                update_scalar_tb('Train loss: Steering regression', loss4, epoch * len(trainloader) + i)
+            if args.tb != 'None':
+                update_scalar_tb('Train loss: Speed classification', loss1, epoch * len(trainloader) + i, args.tb)
+                update_scalar_tb('Train loss: Speed regression', loss2, epoch * len(trainloader) + i, args.tb)
+                update_scalar_tb('Train loss: Steering classification', loss3, epoch * len(trainloader) + i, args.tb)
+                update_scalar_tb('Train loss: Steering regression', loss4, epoch * len(trainloader) + i, args.tb)
 
             loss.backward()
             optimizer.step()
@@ -265,11 +265,11 @@ else:
                     loss2 = criterion_reg(out1[idx_sp,speed_type], speed)
                     loss4 = criterion_reg(out2[idx_st,steering_type], steering)
 
-                if args.tb:
-                    update_scalar_tb('Val loss: Speed classification', loss1, epoch * len(valloader) + i)
-                    update_scalar_tb('Val loss: Speed regression', loss2, epoch * len(valloader) + i)
-                    update_scalar_tb('Val loss: Steering classification', loss3, epoch * len(valloader) + i)
-                    update_scalar_tb('Val loss: Steering regression', loss4, epoch * len(valloader) + i)
+                if args.tb != 'None':
+                    update_scalar_tb('Val loss: Speed classification', loss1, epoch * len(valloader) + i, args.tb)
+                    update_scalar_tb('Val loss: Speed regression', loss2, epoch * len(valloader) + i, args.tb)
+                    update_scalar_tb('Val loss: Steering classification', loss3, epoch * len(valloader) + i, args.tb)
+                    update_scalar_tb('Val loss: Steering regression', loss4, epoch * len(valloader) + i, args.tb)
 
 print('Finished training')
 
