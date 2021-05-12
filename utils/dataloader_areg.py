@@ -502,16 +502,17 @@ class DataLoaderAReg(Dataset):
     def get_seq_length(self):
         return self.seq_length
 
-    def create_video(self, name, speed_labels_pred, steering_labels_pred, speed_reg_pred, steering_reg_pred, sensor = 'CAM_FRONT'):
+    def create_video(self, out, speed_labels_pred, steering_labels_pred, speed_reg_pred, steering_reg_pred, raw_preds, sensor = 'CAM_FRONT'):
         aux_canbus_speed = self.can_bus['speed']
         aux_canbus_steering = self.can_bus['steering']
         aux_list = self.sensors_labelled_data['images'][sensor]
 
         classes_speed = ['stop', 'in motion']
         classes_steering = ['straight', 'strong right', 'strong left']
+        color = [0,0,0]
 
         fourcc = cv.VideoWriter_fourcc(*'MPEG')
-        video = cv.VideoWriter(name, fourcc, 10, (1100, 450))
+        video = cv.VideoWriter(out, fourcc, 10, (1100, 450))
 
         print('Building video')
         for i in tqdm(range(speed_labels_pred.shape[0])):
@@ -530,6 +531,26 @@ class DataLoaderAReg(Dataset):
             black = cv.putText(black, str(steering_reg_pred[i]), (10, 280), cv.FONT_HERSHEY_PLAIN, 1, (255,255,255), 1, cv.LINE_AA)
 
             img = cv.imread(aux_list[i])
+
+            # Normalize scores
+            min_score = min(raw_preds[i][:])
+            max_score = max(raw_preds[i][:])
+            scores = [0,0,0]
+
+            for n in range(raw_preds.shape[1]):
+                scores[n] = (raw_preds[i][n] - min_score)/max_score
+
+            # Add colours
+            _, idx = torch.sort(raw_preds[i][:], descending=True)
+            for c in range(idx.shape[0]):
+                color[idx[c]] = int(255 * scores[idx[c]])
+
+            # Directional arrows
+            img = cv.imread(aux_list[i])
+            cv.arrowedLine(img, (800, 860), (800, 820), (0, color[0], 0), 5)
+            cv.arrowedLine(img, (820, 860), (860, 860), (0, color[1], 0), 5)
+            cv.arrowedLine(img, (780, 860), (740, 860), (0, color[2], 0), 5)
+
             img = img.astype(np.uint8)
             img = cv.resize(img, (800, 450))
             img = np.hstack((black, img))

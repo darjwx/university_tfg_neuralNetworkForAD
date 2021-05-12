@@ -291,6 +291,7 @@ speed_labels_pred = torch.tensor([])
 steering_labels_pred = torch.tensor([])
 speed_reg_pred = torch.tensor([])
 steering_reg_pred = torch.tensor([])
+raw_preds = torch.tensor([])
 
 speed_labels_gt = speed_labels_gt.to(device)
 steering_labels_gt = steering_labels_gt.to(device)
@@ -300,6 +301,7 @@ speed_labels_pred = speed_labels_pred.to(device)
 steering_labels_pred = steering_labels_pred.to(device)
 speed_reg_pred = speed_reg_pred.to(device)
 steering_reg_pred = steering_reg_pred.to(device)
+raw_preds = raw_preds.to(device)
 
 with torch.no_grad():
     for v, data in enumerate(valloader):
@@ -319,6 +321,8 @@ with torch.no_grad():
         type_sp, out1, type_st, out2 = model(images)
         _, predicted_sp = torch.max(type_sp.data, 1)
         _, predicted_st = torch.max(type_st.data, 1)
+
+        raw_preds = torch.cat((raw_preds, type_st), dim=0)
 
         idx_sp = torch.arange(out1.size(0))
         idx_st = torch.arange(out2.size(0))
@@ -365,7 +369,7 @@ for i in range(speed_reg_gt.shape[0]):
         steering_reg_pred[i] = steering_reg_pred[i] * std_st2 + mean_st2
 
 if args.video != 'None':
-    dataset_val.create_video(args.video, speed_labels_pred.cpu(), steering_labels_pred.cpu(), speed_reg_pred.cpu(), steering_reg_pred.cpu())
+    dataset_val.create_video(args.video, speed_labels_pred.cpu(), steering_labels_pred.cpu(), speed_reg_pred.cpu(), steering_reg_pred.cpu(), raw_preds)
 
 # Mean squared error
 error1, max1, min1 = mean_squared_error(speed_reg_pred.cpu(), speed_reg_gt.cpu())
