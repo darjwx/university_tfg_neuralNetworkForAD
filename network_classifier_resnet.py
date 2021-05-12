@@ -34,6 +34,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--epochs', type=int, default=15, help='Number of epochs')
 parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
 parser.add_argument('--batch', type=int, default=10, help='Batch size')
+parser.add_argument('--res', nargs=2, type=int, default=[225,400], help='Images resolution')
+parser.add_argument('--weights', nargs=3, type=float, default=[1., 1., 1.], help='Loss weights')
+parser.add_argument('--route', type=str, default='/data/sets/nuscenes/', help='Route where the NuScenes dataset is located')
+parser.add_argument('--tb', type=str, default='None', help='Path for the TensorBoard logs')
+parser.add_argument('--save', type=str, default='None', help='Location where the model is going to be saved')
+parser.add_argument('--load', type=str, default='None', help='Path to the model to be loaded')
 
 args = parser.parse_args()
 
@@ -84,8 +90,9 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25):
                         optimizer.step()
 
                         #Tensorboard
-                        update_scalar_tb('Train loss per epoch: speed', loss1, epoch * len(dataloaders[phase].dataset) + i)
-                        update_scalar_tb('Train loss per epoch: direction', loss2, epoch * len(dataloaders[phase].dataset) + i)
+                        if args.tb != 'None':
+                            update_scalar_tb('Train loss per epoch: speed', loss1, epoch * len(dataloaders[phase].dataset) + i, args.tb)
+                            update_scalar_tb('Train loss per epoch: direction', loss2, epoch * len(dataloaders[phase].dataset) + i, args.tb)
 
                 rloss1 += loss1.item() * images.size(0)
                 rloss2 += loss2.item() * images.size(0)
@@ -145,7 +152,7 @@ learning_rate = args.lr
 # Original resolution / 4 (900, 1600) (h, w)
 mean = (0.485, 0.456, 0.406)
 std = (0.229, 0.224, 0.225)
-composed = transforms.Compose([Rescale((225,400)),
+composed = transforms.Compose([Rescale(tuple(args.res)),
                               ToTensor(),
                               Normalize(mean, std)])
 
@@ -154,13 +161,13 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = MyModel(classes_1, classes_2)
 model = model.to(device)
 
-weights = torch.tensor([1., 5.68, 5.51], device=device)
+weights = torch.from_numpy(np.array(args.weights)).float().to(device)
 criterion = nn.CrossEntropyLoss(weight=weights)
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 scheduler = ReduceLROnPlateau(optimizer, 'max', 0.1, 1, verbose = True)
 
 # Custom Dataloader for NuScenes
-HOME_ROUTE = '/media/darjwx/ssd_data/data/sets/nuscenes/'
+HOME_ROUTE = args.route
 dataset_train = DataLoaderHF(HOME_ROUTE, 'train', 1111, 850, composed)
 dataset_val = DataLoaderHF(HOME_ROUTE, 'val', 1111, 850, composed)
 
@@ -171,7 +178,16 @@ trainloader = DataLoader(dataset_train, batch_size, shuffle=True, num_workers=4)
 valloader = DataLoader(dataset_val, batch_size, shuffle=False, num_workers=4)
 
 dataloaders = {'train': trainloader, 'val': valloader}
-model = train_model(model, dataloaders, criterion, optimizer, num_epochs)
+
+if args.load != 'None':
+    print('Loading model from %s' % (args.load))
+    model.load_state_dict(torch.load(args.load))
+else:
+    model = train_model(model, dataloaders, criterion, optimizer, num_epochs)
+
+# Save model
+if args.save != 'None':
+    torch.save(model.state_dict(), args.save)
 
 #Statistics
 print('---Statistics---')
@@ -231,7 +247,8 @@ with torch.no_grad():
 preds_1 = torch.cat([torch.stack(batch) for batch in preds_1])
 preds_2 = torch.cat([torch.stack(batch) for batch in preds_2])
 
-pr_curve_tb(3, all_labels_1, all_labels_2, preds_1, preds_2)
+if args.tb != 'None':
+    pr_curve_tb(3, all_labels_1, all_labels_2, preds_1, preds_2, args.tb)
 
 #Per class statistics
 # Dummy classifier: most_frequent and constant

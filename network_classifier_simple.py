@@ -30,6 +30,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--epochs', type=int, default=15, help='Number of epochs')
 parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
 parser.add_argument('--batch', type=int, default=10, help='Batch size')
+parser.add_argument('--res', nargs=2, type=int, default=[225,400], help='Images resolution')
+parser.add_argument('--weights', nargs=3, type=float, default=[1., 1., 1.], help='Loss weights')
+parser.add_argument('--route', type=str, default='/data/sets/nuscenes/', help='Route where the NuScenes dataset is located')
+parser.add_argument('--tb', type=str, default='None', help='Path for the TensorBoard logs')
+parser.add_argument('--save', type=str, default='None', help='Location where the model is going to be saved')
+parser.add_argument('--load', type=str, default='None', help='Path to the model to be loaded')
 
 args = parser.parse_args()
 
@@ -42,7 +48,7 @@ learning_rate = args.lr
 # Original resolution / 4 (900, 1600) (h, w)
 mean = (0.3833, 0.3921, 0.3877)
 std = (0.2231, 0.2164, 0.2189)
-composed = transforms.Compose([Rescale((225,400)),
+composed = transforms.Compose([Rescale(tuple(args.res)),
                               ToTensor(),
                               Normalize(mean, std)])
 class Net(nn.Module):
@@ -71,13 +77,13 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = Net()
 model = model.to(device)
 
-weights = torch.tensor([1., 5.68, 5.51], device=device)
+weights = torch.from_numpy(np.array(args.weights)).float().to(device)
 criterion = nn.CrossEntropyLoss(weight=weights)
 optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 scheduler = ReduceLROnPlateau(optimizer, 'max', 0.1, 2, verbose = True)
 
 # Custom Dataloader for NuScenes
-HOME_ROUTE = '/media/darjwx/ssd_data/data/sets/nuscenes/'
+HOME_ROUTE = args.route
 dataset_train = DataLoaderHF(HOME_ROUTE, 'train', 1111, 850, composed)
 dataset_val = DataLoaderHF(HOME_ROUTE, 'val', 1111, 850, composed)
 
@@ -88,45 +94,15 @@ classes_steering = ['straight', 'left', 'right']
 trainloader = DataLoader(dataset_train, batch_size, shuffle=True, num_workers=4)
 valloader = DataLoader(dataset_val, batch_size, shuffle=False, num_workers=4)
 
-print('Training with %d images' % (len(dataset_train)))
-for epoch in range(num_epochs):
-    rloss1 = 0.0
-    rloss2 = 0.0
-    for i, data in enumerate(trainloader):
-        images = data['image']
-        labels = data['label']
-
-        images = images.to(device)
-        labels = labels.to(device)
-
-        out1, out2 = model(images)
-
-        loss1 = criterion(out1, labels[:, 0])
-        loss2 = criterion(out2, labels[:, 1])
-        loss = loss1 + loss2
-
-        update_scalar_tb('training loss speed', loss1, epoch * len(trainloader) + i)
-        update_scalar_tb('training loss direction', loss2, epoch * len(trainloader) + i)
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        rloss1 += loss1.item()
-        rloss2 += loss2.item()
-
-        if i % 1000 == 999:    # print every 1000 mini-batches
-            print('[%d, %5d] loss speed: %.3f  loss direction: %.3f'
-                 % (epoch + 1, i + 1, rloss1 / 1000, rloss2 / 1000))
-
-            rloss1 = 0.0
-            rloss2 = 0.0
-
-    # Val acc for the scheduler step
-    with torch.no_grad():
-        correct1 = 0
-        correct2 = 0
-        for data in valloader:
+if args.load != 'None':
+    print('Loading model from %s' % (args.load))
+    model.load_state_dict(torch.load(args.load))
+else:
+    print('Training with %d images' % (len(dataset_train)))
+    for epoch in range(num_epochs):
+        rloss1 = 0.0
+        rloss2 = 0.0
+        for i, data in enumerate(trainloader):
             images = data['image']
             labels = data['label']
 
@@ -135,23 +111,58 @@ for epoch in range(num_epochs):
 
             out1, out2 = model(images)
 
-            _, predicted_1 = torch.max(out1.data, 1)
-            _, predicted_2 = torch.max(out2.data, 1)
-            correct1 += (predicted_1 == labels[:, 0]).sum().item()
-            correct2 += (predicted_2 == labels[:, 1]).sum().item()
+            loss1 = criterion(out1, labels[:, 0])
+            loss2 = criterion(out2, labels[:, 1])
+            loss = loss1 + loss2
 
-        acc1 = correct1 / len(valloader)
-        acc2 = correct2 / len(valloader)
-        acc = (acc1 + acc2) / 2
+            if args.tb != 'None':
+                update_scalar_tb('training loss speed', loss1, epoch * len(trainloader) + i, args.tb)
+                update_scalar_tb('training loss direction', loss2, epoch * len(trainloader) + i, args.tb)
 
-        scheduler.step(acc)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            rloss1 += loss1.item()
+            rloss2 += loss2.item()
+
+            if i % 1000 == 999:    # print every 1000 mini-batches
+                print('[%d, %5d] loss speed: %.3f  loss direction: %.3f'
+                     % (epoch + 1, i + 1, rloss1 / 1000, rloss2 / 1000))
+
+                rloss1 = 0.0
+                rloss2 = 0.0
+
+        # Val acc for the scheduler step
+        with torch.no_grad():
+            correct1 = 0
+            correct2 = 0
+            for data in valloader:
+                images = data['image']
+                labels = data['label']
+
+                images = images.to(device)
+                labels = labels.to(device)
+
+                out1, out2 = model(images)
+
+                _, predicted_1 = torch.max(out1.data, 1)
+                _, predicted_2 = torch.max(out2.data, 1)
+                correct1 += (predicted_1 == labels[:, 0]).sum().item()
+                correct2 += (predicted_2 == labels[:, 1]).sum().item()
+
+            acc1 = correct1 / len(valloader)
+            acc2 = correct2 / len(valloader)
+            acc = (acc1 + acc2) / 2
+
+            scheduler.step(acc)
 
 
-print('Finished training')
+    print('Finished training')
 
-# Uncomment to save the model
-# PATH = './models/class_net.pth'
-# torch.save(model.state_dict(), PATH)
+# Save model
+if args.save != 'None':
+    torch.save(model.state_dict(), args.save)
 
 print('Validating with %d' % (len(dataset_val)))
 
@@ -236,7 +247,8 @@ for i in range(3):
 preds_1 = torch.cat([torch.stack(batch) for batch in preds_1])
 preds_2 = torch.cat([torch.stack(batch) for batch in preds_2])
 
-pr_curve_tb(3, all_labels_1, all_labels_2, preds_1, preds_2)
+if args.tb != 'None':
+    pr_curve_tb(3, all_labels_1, all_labels_2, preds_1, preds_2, args.tb)
 
 #Recall, precision, f1_score and confusion_matrix
 get_metrics(all_labels_1.cpu(), all_preds_1.cpu(), 3, classes_speed)

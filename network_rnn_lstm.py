@@ -30,15 +30,22 @@ torch.manual_seed(1)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epochs', type=int, default=15, help='Number of epochs')
+parser.add_argument('--hidden', type=int, default=128, help='LSTM hidden size')
 parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
 parser.add_argument('--layers', type=int, default=1, help='Number of LSTM layers')
+parser.add_argument('--res', nargs=2, type=int, default=[225,400], help='Images resolution')
+parser.add_argument('--weights', nargs=3, type=float, default=[1., 1., 1.], help='Loss weights')
+parser.add_argument('--route', type=str, default='/data/sets/nuscenes/', help='Route where the NuScenes dataset is located')
+parser.add_argument('--tb', type=str, default='None', help='Path for the TensorBoard logs')
+parser.add_argument('--save', type=str, default='None', help='Location where the model is going to be saved')
+parser.add_argument('--load', type=str, default='None', help='Path to the model to be loaded')
 
 args = parser.parse_args()
 
 # Parameters
 input_size = 84
 num_layers = args.layers
-hidden_size = 128
+hidden_size = args.hidden
 num_epochs = args.epochs
 batch_size = 1
 learning_rate = args.lr
@@ -48,7 +55,7 @@ num_classes = 3
 # Original resolution / 4 (900, 1600) (h, w)
 mean = (0.3833, 0.3921, 0.3877)
 std = (0.2231, 0.2164, 0.2189)
-composed = transforms.Compose([Rescale((225,400), True),
+composed = transforms.Compose([Rescale(tuple(args.res), True),
                               ToTensor(True),
                               Normalize(mean, std, True)])
 
@@ -97,7 +104,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = CNNtoLSTM(input_size, hidden_size, num_layers, num_classes)
 model = model.to(device)
 
-weights = torch.tensor([1., 6.31, 5.945], device=device)
+weights = torch.from_numpy(np.array(args.weights)).float().to(device)
 
 criterion = nn.CrossEntropyLoss(weight=weights)
 optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=5e-4)
@@ -106,7 +113,7 @@ optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight
 # scheduler = ReduceLROnPlateau(optimizer, 'min', 0.1, 2, verbose = True)
 
 # Custom Dataloader for NuScenes
-HOME_ROUTE = '/media/darjwx/ssd_data/data/sets/nuscenes/'
+HOME_ROUTE = args.route
 dataset_train = DataLoaderSeq(HOME_ROUTE, 'train', 1111, 850, composed)
 dataset_val = DataLoaderSeq(HOME_ROUTE, 'val', 1111, 850, composed)
 
@@ -117,76 +124,86 @@ classes_steering = ['straight', 'left', 'right']
 trainloader = DataLoader(dataset_train, batch_size, shuffle=True)
 valloader = DataLoader(dataset_val, batch_size, shuffle=False)
 
-print('Training with %d groups of connected images' % (len(dataset_train)))
+if args.load != 'None':
+    print('Loading model from %s' % (args.load))
+    model.load_state_dict(torch.load(args.load))
+else:
+    print('Training with %d groups of connected images' % (len(dataset_train)))
 
-for epoch in range(num_epochs):
-    rloss1 = 0.0
-    rloss2 = 0.0
+    for epoch in range(num_epochs):
+        rloss1 = 0.0
+        rloss2 = 0.0
 
-    model.train()
-    for i, data in enumerate(trainloader):
+        model.train()
+        for i, data in enumerate(trainloader):
 
-        model.zero_grad()
-        images = data['image']
-        labels = data['label']
-
-        images = images.to(device)
-        labels = labels.to(device)
-
-        out1, out2 = model(images)
-
-        labels = labels.view(-1, 2)
-        loss1 = criterion(out1, labels[:, 0])
-        loss2 = criterion(out2, labels[:, 1])
-        loss = loss1 + loss2
-
-        update_scalar_tb('training loss speed', loss1, epoch * len(trainloader) + i)
-        update_scalar_tb('training loss direction', loss2, epoch * len(trainloader) + i)
-
-        loss.backward()
-        optimizer.step()
-
-        rloss1 += loss1.item()
-        rloss2 += loss2.item()
-
-        # print every 100 groups
-        if i % 100 == 99:
-            print('[%d, %5d] loss speed: %.3f loss direction: %.3f'
-                 % (epoch + 1, i + 1, rloss1 / 100, rloss2 / 100))
-
-            rloss1 = 0.0
-            rloss2 = 0.0
-
-    # Validation loss
-    model.eval()
-
-    correct_val_1 = 0
-    correct_val_2 = 0
-    with torch.no_grad():
-        for i, data in enumerate(valloader):
+            model.zero_grad()
             images = data['image']
             labels = data['label']
 
             images = images.to(device)
             labels = labels.to(device)
 
-            labels = labels.view(-1, 2)
-
             out1, out2 = model(images)
-            loss1_val = criterion(out1, labels[:, 0])
-            loss2_val = criterion(out2, labels[:, 1])
 
-            _, predicted_1 = torch.max(out1.data, 1)
-            _, predicted_2 = torch.max(out2.data, 1)
-            correct_val_1 += (predicted_1 == labels[:, 0]).sum().item()
-            correct_val_2 += (predicted_2 == labels[:, 1]).sum().item()
+            labels = labels.view(-1, 2)
+            loss1 = criterion(out1, labels[:, 0])
+            loss2 = criterion(out2, labels[:, 1])
+            loss = loss1 + loss2
 
-            update_scalar_tb('validation loss speed', loss1_val, epoch * len(valloader) + i)
-            update_scalar_tb('validation loss direction', loss2_val, epoch * len(valloader) + i)
+            if args.tb != 'None':
+                update_scalar_tb('training loss speed', loss1, epoch * len(trainloader) + i, args.tb)
+                update_scalar_tb('training loss direction', loss2, epoch * len(trainloader) + i, args.tb)
 
-        print('Val acc 1: %.4f --- Val acc 2: %.4f' % (correct_val_1/dataset_val.true_length(), correct_val_2/dataset_val.true_length()))
+            loss.backward()
+            optimizer.step()
 
-print('Finished training')
+            rloss1 += loss1.item()
+            rloss2 += loss2.item()
+
+            # print every 100 groups
+            if i % 100 == 99:
+                print('[%d, %5d] loss speed: %.3f loss direction: %.3f'
+                     % (epoch + 1, i + 1, rloss1 / 100, rloss2 / 100))
+
+                rloss1 = 0.0
+                rloss2 = 0.0
+
+        # Validation loss
+        model.eval()
+
+        correct_val_1 = 0
+        correct_val_2 = 0
+        with torch.no_grad():
+            for i, data in enumerate(valloader):
+                images = data['image']
+                labels = data['label']
+
+                images = images.to(device)
+                labels = labels.to(device)
+
+                labels = labels.view(-1, 2)
+
+                out1, out2 = model(images)
+                loss1_val = criterion(out1, labels[:, 0])
+                loss2_val = criterion(out2, labels[:, 1])
+
+                _, predicted_1 = torch.max(out1.data, 1)
+                _, predicted_2 = torch.max(out2.data, 1)
+                correct_val_1 += (predicted_1 == labels[:, 0]).sum().item()
+                correct_val_2 += (predicted_2 == labels[:, 1]).sum().item()
+
+                if args.tb != 'None':
+                    update_scalar_tb('validation loss speed', loss1_val, epoch * len(valloader) + i, args.tb)
+                    update_scalar_tb('validation loss direction', loss2_val, epoch * len(valloader) + i, args.tb)
+
+            print('Val acc 1: %.4f --- Val acc 2: %.4f' % (correct_val_1/dataset_val.true_length(), correct_val_2/dataset_val.true_length()))
+
+    print('Finished training')
+
+# Save model
+if args.save != 'None':
+    torch.save(model.state_dict(), args.save)
 
 print('Validating with %d groups of connected images' % (len(dataset_val)))
 
@@ -280,7 +297,8 @@ draw_lineplot(all_labels_2.cpu(), all_preds_2.cpu(), classes_steering)
 preds_1 = torch.cat([torch.stack(batch) for batch in preds_1])
 preds_2 = torch.cat([torch.stack(batch) for batch in preds_2])
 
-pr_curve_tb(3, all_labels_1, all_labels_2, preds_1, preds_2)
+if args.tb != 'None':
+    pr_curve_tb(3, all_labels_1, all_labels_2, preds_1, preds_2, args.tb)
 
 # Recall, precision, f1_score and confusion_matrix
 get_metrics(all_labels_1.cpu(), all_preds_1.cpu(), 3, classes_speed)
