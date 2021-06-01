@@ -249,10 +249,14 @@ for i in range(all_labels_1.shape[0]):
     all_labels_2[i] = all_labels_2[i] * std_st + mean_st
     all_preds_2[i] = all_preds_2[i] * std_st + mean_st
 
-error1 = mean_squared_error(all_preds_1.cpu(), all_labels_1.cpu())
-error2 = mean_squared_error(all_preds_2.cpu(), all_labels_2.cpu())
+error1, max1, min1 = mean_squared_error(all_preds_1.cpu(), all_labels_1.cpu())
+error2, max2, min2 = mean_squared_error(all_preds_2.cpu(), all_labels_2.cpu())
 print('Mean squared error')
 print('Speed: %.4f -- Steering %.4f' %(error1, error2))
+print('Max error')
+print('Speed: %.4f -- Steering %.4f' %(max1, max2))
+print('Min error')
+print('Speed: %.4f -- Steering %.4f' %(min1, min2))
 
 draw_reg_lineplot(all_labels_1.cpu(), all_preds_1.cpu(), 'speed_reg_graf.png')
 draw_reg_lineplot(all_labels_2.cpu(), all_preds_2.cpu(), 'steering_reg_graf.png')
