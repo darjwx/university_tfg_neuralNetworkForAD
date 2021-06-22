@@ -538,7 +538,7 @@ class DataLoaderAReg(Dataset):
             scores = [0,0,0]
 
             for n in range(raw_preds.shape[1]):
-                scores[n] = (raw_preds[i][n] - min_score)/max_score
+                scores[n] = (raw_preds[i][n] - min_score)/(max_score - min_score)
 
             # Add colours
             _, idx = torch.sort(raw_preds[i][:], descending=True)
