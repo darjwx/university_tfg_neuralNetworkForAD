@@ -30,12 +30,22 @@ import argparse
 # Random generator seed
 torch.manual_seed(1)
 
+# Configurations
+def str_to_bool(arg):
+    if arg.lower() in ['y', 'true', '1']:
+        return True
+    elif arg.lower() in ['n', 'false', '0']:
+        return False
+    else:
+        print('Wrong value')
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--epochs', type=int, default=15, help='Number of epochs')
 parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
 parser.add_argument('--batch', type=int, default=10, help='Batch size')
 parser.add_argument('--res', nargs=2, type=int, default=[225,400], help='Images resolution')
 parser.add_argument('--weights', nargs=3, type=float, default=[1., 1., 1.], help='Loss weights')
+parser.add_argument('--canbus', type=str_to_bool, default=False, help='Wheter to use canbus data as an input')
 parser.add_argument('--route', type=str, default='/data/sets/nuscenes/', help='Route where the NuScenes dataset is located')
 parser.add_argument('--tb', type=str, default='None', help='Path for the TensorBoard logs')
 parser.add_argument('--save', type=str, default='None', help='Location where the model is going to be saved')
@@ -70,13 +80,19 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25):
             for i, data in enumerate(dataloaders[phase]):
                 images = data['image']
                 labels = data['label']
-
                 images = images.to(device)
                 labels = labels.to(device)
 
+                if args.canbus:
+                    ndata = data['numerical']
+                    ndata = ndata.to(device)
+
                 # forward
                 with torch.set_grad_enabled(phase == 'train'):
-                    out1, out2 = model(images)
+                    if args.canbus:
+                        out1, out2 = model(images, ndata)
+                    else:
+                        out1, out2 = model(images)
                     loss1 = criterion(out1, labels[:, 0])
                     loss2 = criterion(out2, labels[:, 1])
                     loss = loss1 + loss2
@@ -131,11 +147,17 @@ class MyModel(nn.Module):
         self.model = models.resnet18(pretrained=True)
         num_ftrs = self.model.fc.in_features
         self.model.fc = nn.Identity()
-        self.fc1 = nn.Linear(num_ftrs, num_classes_1)
-        self.fc2 = nn.Linear(num_ftrs, num_classes_2)
+        self.fc = nn.Linear(num_ftrs + add_dim, 120)
+        self.fc1 = nn.Linear(120, num_classes_1)
+        self.fc2 = nn.Linear(120, num_classes_2)
 
-    def forward(self, x):
+    def forward(self, x, d=None):
         x = self.model(x)
+
+        if args.canbus:
+            x = torch.cat((x, d), dim=1)
+
+        x = F.relu(self.fc(x))
         out1 = self.fc1(x)
         out2 = self.fc2(x)
 
@@ -147,14 +169,18 @@ batch_size = args.batch
 classes_1 = 3
 classes_2 = 3
 learning_rate = args.lr
+if args.canbus:
+    add_dim = 2
+else:
+    add_dim = 0
 
 # Transforms
 # Original resolution / 4 (900, 1600) (h, w)
 mean = (0.485, 0.456, 0.406)
 std = (0.229, 0.224, 0.225)
-composed = transforms.Compose([Rescale(tuple(args.res)),
-                              ToTensor(),
-                              Normalize(mean, std)])
+composed = transforms.Compose([Rescale(tuple(args.res),canbus=args.canbus),
+                              ToTensor(canbus=args.canbus),
+                              Normalize(mean, std, canbus=args.canbus)])
 
 # Detect if we have a GPU available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -168,8 +194,8 @@ scheduler = ReduceLROnPlateau(optimizer, 'max', 0.1, 1, verbose = True)
 
 # Custom Dataloader for NuScenes
 HOME_ROUTE = args.route
-dataset_train = DataLoaderHF(HOME_ROUTE, 'train', 1111, 850, composed)
-dataset_val = DataLoaderHF(HOME_ROUTE, 'val', 1111, 850, composed)
+dataset_train = DataLoaderHF(HOME_ROUTE, 'train', 1111, 850, composed, args.canbus)
+dataset_val = DataLoaderHF(HOME_ROUTE, 'val', 1111, 850, composed, args.canbus)
 
 classes_speed = ['maintain', 'stoping', 'accel']
 classes_steering = ['straight', 'left', 'right']
@@ -212,11 +238,15 @@ with torch.no_grad():
     for data in valloader:
         images = data['image']
         labels = data['label']
-
         images = images.to(device)
         labels = labels.to(device)
 
-        out1, out2 = model(images)
+        if args.canbus:
+            ndata = data['numerical']
+            ndata = ndata.to(device)
+            out1, out2 = model(images, ndata)
+        else:
+            out1, out2 = model(images)
         _, predicted_1 = torch.max(out1.data, 1)
         correct_1 = (predicted_1 == labels[:, 0]).squeeze()
         _, predicted_2 = torch.max(out2.data, 1)

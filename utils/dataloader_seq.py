@@ -18,9 +18,12 @@ from tqdm import tqdm
 
 class DataLoaderSeq(Dataset):
 
-    def __init__(self, HOME_ROUTE = '/data/sets/nuscenes/', mode = 'train', canbus_scenes = 1111, sensor_scenes = 850, transform = None):
+    def __init__(self, HOME_ROUTE = '/data/sets/nuscenes/', mode = 'train', canbus_scenes = 1111, sensor_scenes = 850, transform = None, canbus = False):
         nusc = NuScenes(version='v1.0-trainval', dataroot=HOME_ROUTE, verbose=True)
         nusc_can = NuScenesCanBus(dataroot=HOME_ROUTE)
+
+        # Wheter to use CAN bus data as an input
+        self.canbus = canbus
 
         #nusc_can.can_blacklist has the scenes without can bus data.
         #Take those scenes and create an array with a compatible format.
@@ -482,6 +485,7 @@ class DataLoaderSeq(Dataset):
         id_s = 0
         id = []
         images = []
+        ndata = []
         for i in range(idx):
             id_s += self.seq_length[i]
 
@@ -506,7 +510,15 @@ class DataLoaderSeq(Dataset):
             id.append([id_1, id_2])
             images.append(image)
 
-        train = {'image': np.array(images), 'label': np.array(id)}
+            if self.canbus:
+                nd = np.array([self.can_bus['speed'][i,1], self.can_bus['steering'][i,1]])
+                nd = nd.astype(np.float32)
+                ndata.append(nd)
+
+        if self.canbus:
+            train = {'image': np.array(images), 'label': np.array(id), 'numerical': ndata}
+        else:
+            train = {'image': np.array(images), 'label': np.array(id)}
 
         if self.transform:
             train = self.transform(train)

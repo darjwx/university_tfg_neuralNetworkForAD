@@ -18,9 +18,12 @@ from tqdm import tqdm
 
 class DataLoaderHF(Dataset):
 
-    def __init__(self, HOME_ROUTE = '/data/sets/nuscenes/', mode = 'train', canbus_scenes = 1111, sensor_scenes = 850, transform = None):
+    def __init__(self, HOME_ROUTE = '/data/sets/nuscenes/', mode = 'train', canbus_scenes = 1111, sensor_scenes = 850, transform = None, canbus = False):
         nusc = NuScenes(version='v1.0-trainval', dataroot=HOME_ROUTE, verbose=True)
         nusc_can = NuScenesCanBus(dataroot=HOME_ROUTE)
+
+        # Wheter to use CAN bus data as an input
+        self.canbus = canbus
 
         #nusc_can.can_blacklist has the scenes without can bus data.
         #Take those scenes and create an array with a compatible format.
@@ -453,7 +456,17 @@ class DataLoaderHF(Dataset):
                 id_2 = i
 
         id = np.array([id_1, id_2])
-        train = {'image': image, 'label': id}
+
+        if self.canbus:
+            if idx - 1 >= 0:
+                ndata = np.array([self.can_bus['speed'][idx-1,1], self.can_bus['steering'][idx-1,1]])
+            else:
+                ndata = np.array([0, 0])
+
+            ndata = ndata.astype(np.float32)
+            train = {'image': image, 'label': id, 'numerical': ndata}
+        else:
+            train = {'image': image, 'label': id}
 
         if self.transform:
             train = self.transform(train)

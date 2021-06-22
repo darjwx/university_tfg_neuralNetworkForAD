@@ -28,6 +28,15 @@ import argparse
 # Random generator seed
 torch.manual_seed(1)
 
+# Configurations
+def str_to_bool(arg):
+    if arg.lower() in ['y', 'true', '1']:
+        return True
+    elif arg.lower() in ['n', 'false', '0']:
+        return False
+    else:
+        print('Wrong value')
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--epochs', type=int, default=15, help='Number of epochs')
 parser.add_argument('--hidden', type=int, default=128, help='LSTM hidden size')
@@ -35,6 +44,7 @@ parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
 parser.add_argument('--layers', type=int, default=1, help='Number of LSTM layers')
 parser.add_argument('--res', nargs=2, type=int, default=[225,400], help='Images resolution')
 parser.add_argument('--weights', nargs=3, type=float, default=[1., 1., 1.], help='Loss weights')
+parser.add_argument('--canbus', type=str_to_bool, default=False, help='Wheter to use canbus data as an input')
 parser.add_argument('--route', type=str, default='/data/sets/nuscenes/', help='Route where the NuScenes dataset is located')
 parser.add_argument('--tb', type=str, default='None', help='Path for the TensorBoard logs')
 parser.add_argument('--save', type=str, default='None', help='Location where the model is going to be saved')
@@ -50,14 +60,18 @@ num_epochs = args.epochs
 batch_size = 1
 learning_rate = args.lr
 num_classes = 3
+if args.canbus:
+    add_dim = 2
+else:
+    add_dim = 0
 
 # Transforms
 # Original resolution / 4 (900, 1600) (h, w)
 mean = (0.3833, 0.3921, 0.3877)
 std = (0.2231, 0.2164, 0.2189)
-composed = transforms.Compose([Rescale(tuple(args.res), True),
-                              ToTensor(True),
-                              Normalize(mean, std, True)])
+composed = transforms.Compose([Rescale(tuple(args.res), canbus=args.canbus, seq=True),
+                              ToTensor(canbus=args.canbus, seq=True),
+                              Normalize(mean, std, canbus=args.canbus, seq=True)])
 
 class CNNtoLSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, num_classes):
@@ -70,7 +84,7 @@ class CNNtoLSTM(nn.Module):
         self.conv2 = nn.Conv2d(16, 32, 5)
         self.pool = nn.MaxPool2d(2, 2)
         self.fc1 = nn.Linear(32 * 53 * 97, 120)
-        self.fc2 = nn.Linear(120, 84)
+        self.fc2 = nn.Linear(120 + add_dim, 84)
 
         # LSTM and output linear layers
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
@@ -78,7 +92,7 @@ class CNNtoLSTM(nn.Module):
         self.fc4 = nn.Linear(hidden_size, num_classes)
 
 
-    def forward(self, x):
+    def forward(self, x, d=None):
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, device=device)
         c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, device=device)
 
@@ -88,8 +102,12 @@ class CNNtoLSTM(nn.Module):
         x = self.pool(F.relu(self.conv2(x)))
         x = x.view(-1, 32 * 53 * 97)
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
 
+        if args.canbus:
+            d = d.squeeze(0)
+            x = torch.cat((x, d), dim=1)
+
+        x = F.relu(self.fc2(x))
         x = x.unsqueeze(0)
         x, _ = self.lstm(x, (h0, c0))
         x = x.view(-1, hidden_size)
@@ -114,8 +132,8 @@ optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight
 
 # Custom Dataloader for NuScenes
 HOME_ROUTE = args.route
-dataset_train = DataLoaderSeq(HOME_ROUTE, 'train', 1111, 850, composed)
-dataset_val = DataLoaderSeq(HOME_ROUTE, 'val', 1111, 850, composed)
+dataset_train = DataLoaderSeq(HOME_ROUTE, 'train', 1111, 850, composed, args.canbus)
+dataset_val = DataLoaderSeq(HOME_ROUTE, 'val', 1111, 850, composed, args.canbus)
 
 classes_speed = ['maintain', 'stoping', 'accel']
 
@@ -140,11 +158,21 @@ else:
             model.zero_grad()
             images = data['image']
             labels = data['label']
-
             images = images.to(device)
             labels = labels.to(device)
 
-            out1, out2 = model(images)
+            if args.canbus:
+                ndata = data['numerical']
+                ndata = ndata.to(device)
+
+                # Use previous data
+                ndata = torch.roll(ndata, 1, dims=1)
+                ndata[0, 0, 0] = 0.0
+                ndata[0, 0, 1] = 0.0
+
+                out1, out2 = model(images, ndata)
+            else:
+                out1, out2 = model(images)
 
             labels = labels.view(-1, 2)
             loss1 = criterion(out1, labels[:, 0])
@@ -178,13 +206,23 @@ else:
             for i, data in enumerate(valloader):
                 images = data['image']
                 labels = data['label']
-
                 images = images.to(device)
                 labels = labels.to(device)
 
-                labels = labels.view(-1, 2)
+                if args.canbus:
+                    ndata = data['numerical']
+                    ndata = ndata.to(device)
 
-                out1, out2 = model(images)
+                    # Use previous data
+                    ndata = torch.roll(ndata, 1, dims=1)
+                    ndata[0, 0, 0] = 0.0
+                    ndata[0, 0, 1] = 0.0
+
+                    out1, out2 = model(images, ndata)
+                else:
+                    out1, out2 = model(images)
+
+                labels = labels.view(-1, 2)
                 loss1_val = criterion(out1, labels[:, 0])
                 loss2_val = criterion(out2, labels[:, 1])
 
@@ -230,16 +268,25 @@ preds_2 = []
 model.eval()
 with torch.no_grad():
     for v, data in enumerate(valloader):
-
         images = data['image']
         labels = data['label']
-
         images = images.to(device)
         labels = labels.to(device)
 
-        labels = labels.view(-1, 2)
+        if args.canbus:
+            ndata = data['numerical']
+            ndata = ndata.to(device)
 
-        out1, out2 = model(images)
+            # Use previous data
+            ndata = torch.roll(ndata, 1, dims=1)
+            ndata[0, 0, 0] = 0.0
+            ndata[0, 0, 1] = 0.0
+
+            out1, out2 = model(images, ndata)
+        else:
+            out1, out2 = model(images)
+
+        labels = labels.view(-1, 2)
         _, predicted_1 = torch.max(out1.data, 1)
         correct_1 = (predicted_1 == labels[:, 0]).squeeze()
         _, predicted_2 = torch.max(out2.data, 1)

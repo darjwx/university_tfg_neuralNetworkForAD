@@ -14,10 +14,11 @@ class Rescale(object):
     Class to Rescale images.
     """
 
-    def __init__(self, output_size, seq = False, reg = False, areg = False):
+    def __init__(self, output_size, canbus = False, seq = False, reg = False, areg = False):
         """
         Loads the size of the rescaled image.
         :param output_size: Int tuple with the desired size.
+        :param canbus: True when using CAN bus data as an input.
         :param seq: True when working with a sequencial network.
         :param reg: True when working with a regression model.
         :param areg: True when working with the aided regression model.
@@ -25,6 +26,7 @@ class Rescale(object):
 
         assert isinstance(output_size, (int, tuple))
         self.output_size = output_size
+        self.canbus = canbus
         self.seq = seq
         self.reg = reg
         self.areg = areg
@@ -32,7 +34,7 @@ class Rescale(object):
     def __call__(self, sample):
         """
         Rescales the image.
-        :param sample: Contains images/labels.
+        :param sample: Contains images/labels, and optionally, canbus data.
         """
 
         h, w = self.output_size
@@ -44,7 +46,10 @@ class Rescale(object):
             for i in range(np.shape(image)[0]):
                 res_img.append(cv.resize(image[i], (w,h)))
 
-            return {'image': res_img, 'label': label}
+            if self.canbus:
+                return {'image': res_img, 'label': label, 'numerical': sample['numerical']}
+            else:
+                return {'image': res_img, 'label': label}
 
         elif self.reg:
             res_img = []
@@ -68,7 +73,10 @@ class Rescale(object):
             image, label = sample['image'], sample['label']
             img = cv.resize(image, (w,h))
 
-            return {'image': img, 'label': label}
+            if self.canbus:
+                return {'image': img, 'label': label, 'numerical': sample['numerical']}
+            else:
+                return {'image': img, 'label': label}
 
 
 class ToTensor(object):
@@ -76,14 +84,16 @@ class ToTensor(object):
     Class to convert from numpy to tensor.
     """
 
-    def __init__(self, seq = False, reg = False, areg = False):
+    def __init__(self, canbus = False, seq = False, reg = False, areg = False):
         """
         Defines the network we are working with.
+        :param canbus: True when using CAN bus data as an input.
         :param seq: True when working with a sequencial network.
         :param reg: True when working with a regression model.
         :param areg: True when working with the aided regression model.
         """
 
+        self.canbus = canbus
         self.seq = seq
         self.reg = reg
         self.areg = areg
@@ -91,7 +101,7 @@ class ToTensor(object):
     def __call__(self, sample):
         """
         Numpy to tensor.
-        :param sample: Contains images/labels.
+        :param sample: Contains images/labels, and optionally, canbus data.
         """
 
         if self.seq:
@@ -104,8 +114,13 @@ class ToTensor(object):
             for i in range(np.shape(image)[0]):
                 aux.append(image[i].transpose((2, 0, 1)))
 
-            return {'image': torch.from_numpy(np.array(aux)),
-                    'label': torch.from_numpy(label)}
+            if self.canbus:
+                return {'image': torch.from_numpy(np.array(aux)),
+                        'label': torch.from_numpy(label),
+                        'numerical': torch.from_numpy(np.array(sample['numerical']))}
+            else:
+                return {'image': torch.from_numpy(np.array(aux)),
+                        'label': torch.from_numpy(label)}
 
         elif self.reg:
             aux = []
@@ -143,8 +158,13 @@ class ToTensor(object):
             # The net expects: batch_number x C x H x W
             image = image.transpose((2, 0, 1))
 
-            return {'image': torch.from_numpy(image),
-                    'label': torch.from_numpy(label)}
+            if self.canbus:
+                return {'image': torch.from_numpy(image),
+                        'label': torch.from_numpy(label),
+                        'numerical': torch.from_numpy(sample['numerical'])}
+            else:
+                return {'image': torch.from_numpy(image),
+                        'label': torch.from_numpy(label)}
 
 
 class Normalize(object):
@@ -152,7 +172,7 @@ class Normalize(object):
     Class to normalize the mean and standard deviation.
     """
 
-    def __init__(self, mean, std, mean_sp = 0, std_sp = 0, mean0 = 0, std0 = 0, mean1 = 0, std1 = 0, mean2 = 0, std2 = 0, seq = False, reg = False, areg = False):
+    def __init__(self, mean, std, mean_sp = 0, std_sp = 0, mean0 = 0, std0 = 0, mean1 = 0, std1 = 0, mean2 = 0, std2 = 0, canbus = False, seq = False, reg = False, areg = False):
         """
         Loads the mean and std.
         Defines if we are working with a sequencial network.
@@ -161,7 +181,8 @@ class Normalize(object):
         :param mean1: Numerical mean parameter.
         :param std1: Numerical standard deviation parameter.
         :param mean2: Numerical mean parameter.
-        :param std2: Numerical standar deviation parameter.
+        :param std2: Numerical standard deviation parameter.
+        :param canbus: True when using CAN bus data as an input.
         :param seq: True when working with a sequencial network.
         :param reg: True when working with a regression model.
         :param areg: True when working with the aided regression model.
@@ -177,6 +198,7 @@ class Normalize(object):
         self.mean1 = mean1
         self.std2 = std2
         self.mean2 = mean2
+        self.canbus = canbus
         self.seq = seq
         self.reg = reg
         self.areg = areg
@@ -184,7 +206,7 @@ class Normalize(object):
     def __call__(self, sample):
         """
         Normalize each sample.
-        :param sample: Contains images/labels.
+        :param sample: Contains images/labels, and optionally, canbus data.
         """
 
         # Use Normalize from pytorch
@@ -196,8 +218,13 @@ class Normalize(object):
             for i in range(image.size(0)):
                 image[i] = norm(image[i])
 
-            return {'image': image,
-                    'label': label}
+            if self.canbus:
+                return {'image': image,
+                        'label': label,
+                        'numerical': sample['numerical']}
+            else:
+                return {'image': image,
+                        'label': label}
 
         elif self.reg:
             image, canbus = sample['image'], sample['can_bus']
@@ -238,7 +265,12 @@ class Normalize(object):
         else:
             image, label = sample['image'], sample['label']
 
-            img = norm(image)
+            image = norm(image)
 
-            return {'image': img,
-                    'label': label}
+            if self.canbus:
+                return {'image': image,
+                        'label': label,
+                        'numerical': sample['numerical']}
+            else:
+                return {'image': image,
+                        'label': label}
