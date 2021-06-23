@@ -511,7 +511,7 @@ class DataLoaderSeq(Dataset):
             images.append(image)
 
             if self.canbus:
-                nd = np.array([self.can_bus['speed'][i,1], self.can_bus['steering'][i,1]])
+                nd = np.array([self.can_bus['speed'][id_s+i,1], self.can_bus['steering'][id_s+i,1]])
                 nd = nd.astype(np.float32)
                 ndata.append(nd)
 
